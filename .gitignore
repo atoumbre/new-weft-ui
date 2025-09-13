@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+
+# SvelteKit / Vite
+.svelte-kit/
+.vite/
+dist/
+build/
+
+# Env
+.env
+.env.*
+
+# Editor
+.idea/
+.vscode/
+
