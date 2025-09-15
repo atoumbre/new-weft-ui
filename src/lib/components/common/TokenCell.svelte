@@ -12,7 +12,11 @@
 
 <div class="flex items-center gap-4">
   {#if logo}
-    <span class="text-2xl">{logo}</span>
+    <div class="avatar placeholder">
+      <div class="w-8 h-8 rounded-full bg-base-200 ring ring-base-100 ring-offset-1 text-base flex items-center justify-center">
+        {logo}
+      </div>
+    </div>
   {/if}
   <div>
     <div class="font-medium">{symbol}</div>

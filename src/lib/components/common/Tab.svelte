@@ -10,6 +10,8 @@
   role="tab"
   class="tab flex items-center gap-2"
   class:tab-active={activeId === id}
+  aria-selected={activeId === id}
+  type="button"
   onclick={select}
 >
   {@render icon?.()}

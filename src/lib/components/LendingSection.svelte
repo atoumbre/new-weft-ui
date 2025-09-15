@@ -1,8 +1,8 @@
 <script lang="ts">
+  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
   import ListRow from '$lib/components/common/ListRow.svelte';
   import TokenCell from '$lib/components/common/TokenCell.svelte';
-  import UtilizationBar from '$lib/components/common/UtilizationBar.svelte';
-  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
+  import LendingForm from '$lib/components/forms/LendingForm.svelte';
 
   type LendingPosition = {
     id: string;
@@ -49,15 +49,29 @@
   function parseUsd(s: string): number {
     return Number.parseFloat(s.replace(/[$,\s]/g, '')) || 0;
   }
+
+  // Popup form controls
+  let formOpen = $state(false);
+  let presetType = $state<'supply' | 'withdraw' | undefined>(undefined);
+  let presetAsset = $state<string | undefined>(undefined);
+  function openForm(type?: 'supply' | 'withdraw', asset?: string) {
+    presetType = type;
+    presetAsset = asset;
+    formOpen = true;
+  }
+  function handleSubmit(e: CustomEvent<{ actions: any[] }>) {
+    // TODO: Wire to contracts. For now, just close.
+    formOpen = false;
+  }
 </script>
 
 <div class="space-y-6">
   <!-- Your Lending Positions -->
-  <div class="card bg-base-200">
+  <div class="card bg-base-200/60">
     <div class="card-body">
       <div class="flex items-center justify-between">
         <h2 class="card-title">Your Lending Positions</h2>
- <button class="btn btn-sm btn-outline">Add</button>
+        <button class="btn btn-sm btn-outline" onclick={() => openForm()}>Add</button>
       </div>
 
       <div class="mt-4 space-y-3">
@@ -77,8 +91,8 @@
                 </div>
 
                 <div class="flex gap-2">
-                  <button class="btn btn-sm btn-outline">Supply</button>
-                  <button class="btn btn-sm btn-outline">Withdraw</button>
+                  <button class="btn btn-sm btn-outline" onclick={() => openForm('supply', position.asset)}>Supply</button>
+                  <button class="btn btn-sm btn-outline" onclick={() => openForm('withdraw', position.asset)}>Withdraw</button>
                 </div>
               </div>
             {/snippet}
@@ -88,5 +102,6 @@
     </div>
   </div>
 
-  
+  <!-- Lending form modal -->
+  <LendingForm bind:open={formOpen} presetType={presetType} presetAsset={presetAsset} on:submit={handleSubmit} />
 </div>

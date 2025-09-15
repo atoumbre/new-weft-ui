@@ -1,23 +1,18 @@
 {
   "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "$lib": ["src/lib"],
-      "$lib/*": ["src/lib/*"]
-    },
     "allowJs": true,
     "checkJs": false,
     "types": ["svelte"]
   },
   "include": [
-    "src/**/*.d.ts",
-    "src/**/*.ts",
     "src/**/*.svelte",
-    "src/**/*.js"
+    "src/**/*.ts",
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",
+    "internal_modules",
     ".svelte-kit",
     "dist",
     "build"

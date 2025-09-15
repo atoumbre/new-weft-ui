@@ -6,7 +6,28 @@ html, body, #app {
   height: 100%;
 }
 
-:root {
+/* Prefer correct scheme based on active theme */
+[data-theme='cryptolend'],
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+[data-theme='light'] {
   color-scheme: light;
 }
 
+/* Global polish */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Utility for aligned numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smoother theme transitions */
+body, [data-theme] {
+  transition: background-color 200ms ease, color 200ms ease;
+}

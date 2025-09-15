@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { dec, fAmount, fValue } from "$lib/utils";
+
   type Props = {
     amount?: number | string;
     symbol?: string;
@@ -8,38 +10,22 @@
   let { amount = 0, symbol = '', priceUSD, usd }: Props = $props();
 
   function toNumber(x: number | string): number {
-    if (typeof x === 'number') return x;
-    const cleaned = x.replace(/[$,\s]/g, '');
-    const n = Number.parseFloat(cleaned);
-    return Number.isFinite(n) ? n : 0;
+   return dec(x).toNumber()
   }
 
-  const amountNum = $derived(toNumber(amount));
+  const amountNum = $derived.by(()=>{
+    return toNumber(amount)
+  });
+
   const usdValue = $derived(
     usd !== undefined ? usd : priceUSD !== undefined ? amountNum * priceUSD : undefined
   );
 
-  function fmtAmount(n: number): string {
-    return n.toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 20
-    });
-  }
-
-  function fmtUsd(n: number): string {
-    return n.toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
 </script>
 
 <div class="leading-tight text-right">
-  <div class="font-medium">{fmtAmount(amountNum)}</div>
+  <div class="font-medium tabular-nums">{fAmount(dec(amountNum))}</div>
   {#if usdValue !== undefined}
-    <div class="text-xs opacity-70">{fmtUsd(usdValue)}</div>
+    <div class="text-xs opacity-70 tabular-nums">{fValue(dec(usdValue))}</div>
   {/if}
 </div>
-

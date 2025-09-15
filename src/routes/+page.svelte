@@ -5,17 +5,44 @@
   import Tabs from '$lib/components/common/Tabs.svelte';
   import Tab from '$lib/components/common/Tab.svelte';
   import MarketsSection from '$lib/components/MarketsSection.svelte';
+  import { getResourceInfoStore } from '$lib/stores/resource-data-store.svelte';
+  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte';
+  import { dec, fValue } from '$lib/utils';
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
 
-  let activeTab = $state<'lending' | 'markets' | 'cdp'>('lending');
+  let activeTab = $state<'lending' | 'markets' | 'cdp'>('markets');
+
+  const marketInfoStore = getMarketInfoStore();
+  const resourceStore = getResourceInfoStore();
+  const pythPriceStore = getPythPriceStore();
+
+  // Calculate real totals from lending pools
+  const total = $derived.by(() => {
+
+    return marketInfoStore.loanResources.reduce((sum, loanResource) => {
+      const resourceInfo = resourceStore.getFungibleResourceState(loanResource.resourceAddress);
+      const priceInXRD = resourceInfo?.price?.toNumber() || 0;
+      const priceInUSD = priceInXRD * pythPriceStore.xrdPrice.toNumber();
+
+
+       sum.totalSuppliedUSD = sum.totalSuppliedUSD + (loanResource.lendingPoolState.totalDeposit.toNumber() * priceInUSD);
+       sum.totalBorrowedUSD = sum.totalBorrowedUSD + (loanResource.lendingPoolState.totalLoan.toNumber() * priceInUSD);
+ sum.totalLiquidityUSD  =       sum.totalSuppliedUSD -        sum.totalBorrowedUSD 
+       return sum
+    }, {totalSuppliedUSD:0,totalBorrowedUSD:0,totalLiquidityUSD:0});
+  });
+
+
+  // TODO: Calculate total collateral from CDP data when available
+  let totalCollateralUSD = $derived(0);
 </script>
 
 <!-- Dashboard Stats -->
-<div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-  <StatCard label="Total Supplied" value="$24,567.89" delta="+12.5%" deltaTone="success" />
-  <StatCard label="Total Borrowed" value="$8,234.56" delta="+3.2%" deltaTone="muted" />
-  <StatCard label="Net Worth" value="$16,333.33" delta="+8.7%" deltaTone="success" />
-  <StatCard label="Total Collateral" value="$50,750.00" delta="+5.2%" deltaTone="success" />
-  <StatCard label="Health Factor" value="2.34" helper="Safe" />
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  <StatCard label="Total Supplied" value={fValue(dec(total.totalSuppliedUSD))} delta="+12.5%" deltaTone="success" />
+  <StatCard label="Total Borrowed" value={fValue(dec(total.totalBorrowedUSD))} delta="+3.2%" deltaTone="muted" />
+  <StatCard label="Liquidity" value={fValue(dec(total.totalLiquidityUSD))} delta="+8.7%" deltaTone="success" />
+  <StatCard label="Total Collateral" value={fValue(dec(totalCollateralUSD))} delta="+5.2%" deltaTone="success" />
 </div>
 
 <!-- Tabs -->

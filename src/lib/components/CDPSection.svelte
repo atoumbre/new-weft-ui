@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CDPForm from '$lib/components/forms/CDPForm.svelte';
   import ListRow from '$lib/components/common/ListRow.svelte';
   import TokenCell from '$lib/components/common/TokenCell.svelte';
   import StatusBadge from '$lib/components/common/StatusBadge.svelte';
@@ -86,7 +87,10 @@
   ];
 
   let selectedCDP = $state<string>('CDP-001');
-  const currentCDP = $derived(cdpPositions.find((c) => c.id === selectedCDP));
+  const currentCDP = $derived.by(() => {
+    const found = cdpPositions.find((c) => c.id === selectedCDP);
+    return found;
+  });
 
   // Collateral sub-tabs state
   let collatTab = $state<'normal' | 'ftw' | 'nftw'>('normal');
@@ -134,22 +138,72 @@
   function parseUnitsStr(s: string): number {
     return Number.parseFloat(s.replace(/[,\s]/g, '')) || 0;
   }
+
+  // CDP form modal state and derived data
+  let formOpen = $state(false);
+  let presetType: 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay' | undefined = $state();
+  let presetAsset: string | undefined = $state();
+  function openCdpForm(type?: 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay', asset?: string) {
+    presetType = type;
+    presetAsset = asset;
+    formOpen = true;
+  }
+
+  const collateralAssets = $derived.by(() => {
+    const map = new Map<string, { symbol: string; logo: string }>();
+    if (currentCDP) for (const c of currentCDP.collaterals) map.set(c.asset, { symbol: c.asset, logo: c.logo });
+    // include available collaterals as options too
+    for (const a of availableCollaterals) map.set(a.asset, { symbol: a.asset, logo: a.logo });
+    return Array.from(map.values());
+  });
+  const debtAssets = $derived.by(() => {
+    const map = new Map<string, { symbol: string; logo: string }>();
+    if (currentCDP) for (const l of currentCDP.loans) map.set(l.asset, { symbol: l.asset, logo: l.logo });
+    // include available loan resources as options too
+    for (const lr of availableLoanResources) map.set(lr.asset, { symbol: lr.asset, logo: lr.logo });
+    return Array.from(map.values());
+  });
+  const prices = $derived.by(() => {
+    const p: Record<string, number> = {};
+    if (currentCDP) {
+      for (const c of currentCDP.collaterals) p[c.asset] = parseUsdStr(c.price);
+      for (const l of currentCDP.loans) p[l.asset] = parseUsdStr(l.price);
+    }
+    return p;
+  });
+  const ltv = $derived.by(() => {
+    const m: Record<string, number> = {};
+    if (currentCDP) for (const c of currentCDP.collaterals) if (c.ltv) m[c.asset] = Number(String(c.ltv).replace(/[%\s]/g, '')) / 100;
+    return m;
+  });
+  const currentCollateralUSD = $derived.by(() => {
+    const rec: Record<string, number> = {};
+    if (currentCDP) for (const c of currentCDP.collaterals) rec[c.asset] = parseUnitsStr(c.amount);
+    return rec;
+  });
+  const currentDebtUSD = $derived.by(() => {
+    const rec: Record<string, number> = {};
+    if (currentCDP) for (const l of currentCDP.loans) rec[l.asset] = parseUnitsStr(l.borrowed);
+    return rec;
+  });
+  const balancesCollateral = $derived.by(() => ({ ...currentCollateralUSD }));
+  const balancesDebt = $derived.by(() => ({ ...currentDebtUSD }));
 </script>
 
-<div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h2 class="text-2xl font-semibold">CDP Management</h2>
-      <p class="opacity-70">Manage your collateralized debt positions</p>
-    </div>
-    <button class="btn btn-primary">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-semibold">CDP Management</h2>
+        <p class="opacity-70">Manage your collateralized debt positions</p>
+      </div>
+    <button class="btn btn-primary" onclick={() => openCdpForm('add_collateral')}>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4 mr-2"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
       Create New CDP
     </button>
-  </div>
+    </div>
 
   <!-- CDP Selector -->
-  <div class="card bg-base-200">
+  <div class="card bg-base-200/60">
     <div class="card-body py-3">
       <div class="flex items-center gap-3">
         <h2 class="card-title shrink-0 m-0">Your CDPs</h2>
@@ -174,7 +228,7 @@
 
   {#if currentCDP}
     <div class="space-y-6">
-      <div class="card card-compact bg-base-200">
+      <div class="card card-compact bg-base-200/60">
         <div class="card-body py-3">
           <div class="flex items-center justify-between">
             <h2 class="card-title text-base">{currentCDP.id} Overview</h2>
@@ -213,21 +267,21 @@
             </div>
           </div> -->
 
-          {#if currentCDP.healthRatio < 1.5}
+          <!-- {#if currentCDP.healthRatio < 1.5}
             <div role="alert" class="alert alert-warning mt-3 text-xs">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/></svg>
               <span>Your CDP is at risk of liquidation. Consider adding more collateral or repaying debt.</span>
             </div>
-          {/if}
+          {/if} -->
         </div>
       </div>
 
       <div class="space-y-6">
-        <div class="card bg-base-200">
+        <div class="card bg-base-200/60">
           <div class="card-body">
             <div class="flex items-center justify-between">
               <h3 class="card-title">Collaterals</h3>
-              <button class="btn btn-sm btn-outline">Add</button>
+              <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('add_collateral')}>Add</button>
             </div>
 
             <div class="mt-2">
@@ -255,8 +309,8 @@
                           <div class="font-medium">{collateral.ltv ?? '-'}</div>
                         </div>
                         <div class="flex gap-2">
-                          <button class="btn btn-sm btn-outline">Add</button>
-                          <button class="btn btn-sm btn-outline">Remove</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('add_collateral', collateral.asset)}>Add</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('remove_collateral', collateral.asset)}>Remove</button>
                         </div>
                       </div>
                     {/snippet}
@@ -291,8 +345,8 @@
                           <AmountDisplay amount={w.shares} symbol={w.wrapper} usd={w.usd} />
                         </div>
                         <div class="flex gap-2">
-                          <button class="btn btn-sm btn-outline">Add</button>
-                          <button class="btn btn-sm btn-outline">Remove</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('add_collateral')}>Add</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('remove_collateral')}>Remove</button>
                           <button class="btn btn-sm btn-outline">Unwrap</button>
                         </div>
                       </div>
@@ -328,8 +382,8 @@
                           <AmountDisplay amount={n.count} symbol={'NFTs'} usd={n.usd} />
                         </div>
                         <div class="flex gap-2">
-                          <button class="btn btn-sm btn-outline">Add</button>
-                          <button class="btn btn-sm btn-outline">Remove</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('add_collateral')}>Add</button>
+                          <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('remove_collateral')}>Remove</button>
                           <button class="btn btn-sm btn-outline">Unwrap</button>
                         </div>
                       </div>
@@ -341,11 +395,11 @@
           </div>
         </div>
 
-        <div class="card card-compact bg-base-200">
+        <div class="card card-compact bg-base-200/60">
           <div class="card-body py-3">
             <div class="flex items-center justify-between">
               <h3 class="card-title">Borrowed Assets</h3>
-              <button class="btn btn-sm btn-outline">Borrow</button>
+              <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('borrow')}>Borrow</button>
             </div>
 
             <div class="mt-3 space-y-3">
@@ -364,8 +418,8 @@
                         <div class="font-medium text-warning">{loan.interestRate}</div>
                       </div>
                     <div class="flex gap-2">
-                      <button class="btn btn-sm btn-outline">Repay</button>
-                      <button class="btn btn-sm btn-outline">Borrow</button>
+                      <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('repay', loan.asset)}>Repay</button>
+                      <button class="btn btn-sm btn-outline" onclick={() => openCdpForm('borrow', loan.asset)}>Borrow</button>
                     </div>
                     </div>
                   {/snippet}
@@ -411,3 +465,19 @@
     <div class="text-error">CDP not found</div>
   {/if}
 </div>
+
+<!-- CDP update modal -->
+<CDPForm
+  bind:open={formOpen}
+  presetType={presetType}
+  presetAsset={presetAsset}
+  collateralAssets={collateralAssets}
+  debtAssets={debtAssets}
+  prices={prices}
+  ltv={ltv}
+  currentCollateral={currentCollateralUSD}
+  currentDebt={currentDebtUSD}
+  balancesCollateral={balancesCollateral}
+  balancesDebt={balancesDebt}
+  on:submit={() => (formOpen = false)}
+/>

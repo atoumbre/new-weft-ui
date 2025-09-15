@@ -19,6 +19,11 @@
     "vite": "^6.3.0"
   },
   "dependencies": {
-    "lucide-svelte": "^0.468.0"
+    "@pythnetwork/hermes-client": "^2.0.0",
+    "@radixdlt/babylon-gateway-api-sdk": "^1.10.1",
+    "@radixdlt/radix-dapp-toolkit": "^2.2.1",
+    "decimal.js": "^10.6.0",
+    "lucide-svelte": "^0.468.0",
+    "numerable": "^0.3.15"
   }
 }
