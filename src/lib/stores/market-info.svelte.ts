@@ -1,7 +1,8 @@
 
 import { getContext, setContext } from 'svelte';
 import { BaseStore } from './base-store.svelte';
-import { type MarketConfig, type MarketProtocolFeeConfig, type LoanResource, type CollateralResource, type MarketService, type OperatingStatusValue, type LoanService, type GlobalCollateralService, WeftLedgerSateFetcher } from '$lib/internal_modules/dist';
+import { type MarketConfig, type MarketProtocolFeeConfig, type LoanResource, type CollateralResource, type MarketService, type OperatingStatusValue, type LoanService, type GlobalCollateralService, WeftLedgerSateFetcher, type FungibleResourceState } from '$lib/internal_modules/dist';
+import type Decimal from 'decimal.js';
 
 export class MarketInfoStore extends BaseStore {
   // Separate $state for each market info member
@@ -12,7 +13,24 @@ export class MarketInfoStore extends BaseStore {
   globalMarketService: Record<MarketService, OperatingStatusValue> | null = $state(null);
   globalLoanService: Record<LoanService, OperatingStatusValue> | null = $state(null);
   globalCollateralService: GlobalCollateralService | null = $state(null);
-  allResourceAddresses: string[]
+  lsuAmounts: {
+    resourceAddress: string;
+    amount: Decimal;
+    resourceDetails?: FungibleResourceState;
+  }[] = $state([])
+
+  allResourceAddresses = $derived.by(() => {
+
+    return [
+      ...new Set([
+        ...this.loanResources.map(res => res.resourceAddress),
+        ...this.collateralResources.map(res => res.resourceAddress)
+      ])
+    ]
+
+  })
+
+
 
   weftStateApi: WeftLedgerSateFetcher;
   updaterTimer: number | undefined;
@@ -54,7 +72,7 @@ export class MarketInfoStore extends BaseStore {
       this.globalMarketService = result.globalMarketService;
       this.globalLoanService = result.globalLoanService;
       this.globalCollateralService = result.globalCollateralService;
-      this.allResourceAddresses = result.allResourceAddresses
+      this.lsuAmounts = result.lsuAmounts;
     }
   }
 

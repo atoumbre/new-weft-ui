@@ -7,7 +7,6 @@ html, body, #app {
 }
 
 /* Prefer correct scheme based on active theme */
-[data-theme='cryptolend'],
 [data-theme='dark'] {
   color-scheme: dark;
 }

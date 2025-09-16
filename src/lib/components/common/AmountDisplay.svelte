@@ -1,31 +1,25 @@
 <script lang="ts">
-  import { dec, fAmount, fValue } from "$lib/utils";
+  import type Decimal from 'decimal.js';
+  import { fAmount, fValue } from "$lib/utils";
 
   type Props = {
-    amount?: number | string;
-    symbol?: string;
-    priceUSD?: number; // per-unit USD price
-    usd?: number; // direct USD value (overrides priceUSD if provided)
+    amount: Decimal;
+    priceUSD?: Decimal; // per-unit USD price
+    usd?: Decimal; // direct USD value (overrides priceUSD if provided)
   };
-  let { amount = 0, symbol = '', priceUSD, usd }: Props = $props();
 
-  function toNumber(x: number | string): number {
-   return dec(x).toNumber()
-  }
+  let { amount, priceUSD, usd }: Props = $props();
 
-  const amountNum = $derived.by(()=>{
-    return toNumber(amount)
+  const usdDec: Decimal | undefined = $derived.by(() => {
+    if (usd !== undefined) return usd;
+    if (priceUSD !== undefined) return amount.mul(priceUSD);
+    return undefined;
   });
-
-  const usdValue = $derived(
-    usd !== undefined ? usd : priceUSD !== undefined ? amountNum * priceUSD : undefined
-  );
-
 </script>
 
 <div class="leading-tight text-right">
-  <div class="font-medium tabular-nums">{fAmount(dec(amountNum))}</div>
-  {#if usdValue !== undefined}
-    <div class="text-xs opacity-70 tabular-nums">{fValue(dec(usdValue))}</div>
+  <div class="font-medium tabular-nums">{fAmount(amount)}</div>
+  {#if usdDec !== undefined}
+    <div class="text-xs opacity-70 tabular-nums">{fValue(usdDec)}</div>
   {/if}
 </div>

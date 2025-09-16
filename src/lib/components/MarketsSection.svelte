@@ -1,25 +1,27 @@
 <script lang="ts">
-  import UtilizationBar from '$lib/components/common/UtilizationBar.svelte';
-  import TokenCell from '$lib/components/common/TokenCell.svelte';
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
-  import { getResourceInfoStore } from '$lib/stores/resource-data-store.svelte';
-  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte';
-  import { dec, fValue, fPercent } from '$lib/utils';
-  import type { CollateralResource, ReturnedResourcePoolState } from '$lib/internal_modules/dist';
+  import UtilizationBar from '$lib/components/common/UtilizationBar.svelte';
+  import type { CollateralResource, LoanResource } from '$lib/internal_modules/dist';
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte';
+  import { getResourceInfoStore } from '$lib/stores/price-store.svelte';
+  import { fPercent, fValue } from '$lib/utils';
+  import type Decimal from 'decimal.js';
+
+  let { showLending = true, showCollaterals = true } = $props();
 
   type MarketPool = {
     id: string;
     asset: string;
-    utilization: number;
-    supplyApr: string;
-    borrowApr: string;
-    priceUsd: number;
+    utilization: Decimal; // 0..100
+    supplyApr: Decimal;
+    borrowApr: Decimal;
+    priceUsd: Decimal; // per-unit USD price
     change24h: string | number;
     isPositive: boolean;
-    availableLiquidityUnits: number;
-    totalSupplyUnits: number;
-    totalBorrowUnits: number;
+    availableLiquidityUnits: Decimal;
+    totalSupplyUnits: Decimal;
+    totalBorrowUnits: Decimal;
     logo: string;
   };
 
@@ -27,37 +29,38 @@
   const resourceStore = getResourceInfoStore();
   const pythPriceStore = getPythPriceStore();
 
-  function transformPoolData(pool: ReturnedResourcePoolState): MarketPool {
-    const resourceInfo = resourceStore.getFungibleResourceState(pool.resourceAddress);
-    const priceInXRD = resourceInfo?.price?.toNumber() || 0;
-    const priceInUSD = priceInXRD * pythPriceStore.xrdPrice.toNumber();
+  function transformPoolData(loanResource: LoanResource): MarketPool {
+    const priceInXRD = resourceStore.getFungibleResourceState(loanResource.resourceAddress) ;
+    const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice);
 
-    // Calculate utilization percentage
-    const utilization = pool.utilizationRate.mul(100).toNumber();
-
-    // Calculate available liquidity
-    const availableLiquidity = pool.totalDeposit.sub(pool.totalLoan).toNumber();
 
     // Get token symbol from resource info or default
-    const symbol = resourceInfo?.resourceState?.$metadata?.symbol ||
-                   resourceInfo?.resourceState?.$metadata?.name ||
-                   pool.resourceAddress.slice(-4);
+    const symbol = loanResource?.resourceDetails?.$metadata?.symbol ||
+                   loanResource?.resourceDetails?.$metadata?.name ||
+                   loanResource.resourceAddress.slice(-4);
 
 
-    const iconUrl = resourceInfo?.resourceState?.$metadata?.iconUrl;
+    const iconUrl = loanResource?.resourceDetails?.$metadata?.iconUrl;
+
+    const pool =  loanResource.lendingPoolState;
+    // Calculate utilization percentage
+    const utilization =pool.utilizationRate.mul(100);
+
+    // Calculate available liquidity
+    const availableLiquidity =pool.totalDeposit.sub(pool.totalLoan);
 
     return {
-      id: pool.resourceAddress,
+      id: loanResource.resourceAddress,
       asset: symbol,
-      utilization: Math.round(utilization),
-      supplyApr: fPercent(pool.netLendingApr),
-      borrowApr: fPercent(pool.borrowingApr),
+      utilization,
+      supplyApr: pool.netLendingApr,
+      borrowApr: pool.borrowingApr,
       priceUsd: priceInUSD,
       change24h: '+0.00%', // TODO: Calculate 24h change when price history is available
       isPositive: true,
       availableLiquidityUnits: availableLiquidity,
-      totalSupplyUnits: pool.totalDeposit.toNumber(),
-      totalBorrowUnits: pool.totalLoan.toNumber(),
+      totalSupplyUnits: pool.totalDeposit,
+      totalBorrowUnits: pool.totalLoan,
       logo: iconUrl 
     };
   }
@@ -66,57 +69,62 @@
 
   // Get market pools from real data, sorted by total deposit USD value descending
   let marketPools: MarketPool[] = $derived(
-   marketInfoStore.loanResources
-          .map((loanResource) => transformPoolData(loanResource.lendingPoolState))
-          .sort((a, b) => (b.totalSupplyUnits * b.priceUsd) - (a.totalSupplyUnits * a.priceUsd))
-
+    marketInfoStore.loanResources
+      .map((loanResource) => transformPoolData(loanResource))
+      .sort((a, b) => b.totalSupplyUnits.mul(b.priceUsd).cmp(a.totalSupplyUnits.mul(a.priceUsd)))
   );
 
-  // Calculate totals from real data
-  let totalSuppliedUSD = $derived(
-    marketPools.reduce((sum, pool) => sum + (pool.totalSupplyUnits * pool.priceUsd), 0)
-  );
+  // // Calculate totals from real data
+  // let totalSuppliedUSD: Decimal = $derived(
+  //   marketPools.reduce((sum, pool) => sum.add(pool.totalSupplyUnits.mul(pool.priceUsd)), dec(0))
+  // );
 
-  let totalBorrowedUSD = $derived(
-    marketPools.reduce((sum, pool) => sum + (pool.totalBorrowUnits * pool.priceUsd), 0)
-  );
+  // let totalBorrowedUSD: Decimal = $derived(
+  //   marketPools.reduce((sum, pool) => sum.add(pool.totalBorrowUnits.mul(pool.priceUsd)), dec(0))
+  // );
 
-  let totalLiquidityUSD = $derived(
-    marketPools.reduce((sum, pool) => sum + (pool.availableLiquidityUnits * pool.priceUsd), 0)
-  );
+  // let totalLiquidityUSD: Decimal = $derived(
+  //   marketPools.reduce((sum, pool) => sum.add(pool.availableLiquidityUnits.mul(pool.priceUsd)), dec(0))
+  // );
 
   type AvailableCollateral = {
     id: string;
     asset: string;
-    priceUsd: number;
+    priceUsd: Decimal;
     change24h: string | number;
     isPositive: boolean;
-    ltv: string;
-    liquidationLtv: string;
-    liquidationPenalty: string;
-    totalSupplied: number;
-    totalSuppliedUsd: number;
+    ltv: Decimal;
+    liquidationLtv: Decimal;
+    liquidationPenalty: Decimal;
+        totalSupplied: Decimal;
+    totalSuppliedUsd: Decimal;
+    totalSuppliedDirect: Decimal;
+    totalSuppliedDirectUsd: Decimal;
+    totalSuppliedWrapped: Decimal;
+    totalSuppliedWrappedUsd: Decimal;
     logo: string;
   };
 
   function transformCollateralData(collateralResource: CollateralResource): AvailableCollateral {
-    const resourceInfo = resourceStore.getFungibleResourceState(collateralResource.resourceAddress);
-    const priceInXRD = resourceInfo?.price?.toNumber() || 0;
-    const priceInUSD = priceInXRD * pythPriceStore.xrdPrice.toNumber();
+    const priceInXRD = resourceStore.getFungibleResourceState(collateralResource.resourceAddress);
+    const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice);
 
     // Get token symbol from resource info or default
-    const symbol = resourceInfo?.resourceState?.$metadata?.symbol ||
-                   resourceInfo?.resourceState?.$metadata?.name ||
+    const symbol = collateralResource?.resourceDetails?.$metadata?.symbol ||
+                   collateralResource?.resourceDetails?.$metadata?.name ||
                    collateralResource.resourceAddress.slice(-4);
 
-    const iconUrl = resourceInfo?.resourceState?.$metadata?.iconUrl;
+    const iconUrl = collateralResource?.resourceDetails?.$metadata?.iconUrl;
 
     // Calculate total supplied USD value using the totalDeposit from CollateralResource
-    const totalSuppliedUnits = collateralResource.totalDeposit?.toNumber() ;
-    const totalSuppliedUsd = totalSuppliedUnits * priceInUSD;
+    // const totalSuppliedUnits = ;
+    const totalSuppliedDirectUsd =collateralResource.totalDeposit.mul(priceInUSD);
+    const totalSuppliedWrappedUsd =collateralResource.totalDepositUnderDU.mul(priceInUSD);
 
     // Use the correct property path: riskConfig contains the CollateralConfig
     const riskConfig = collateralResource.riskConfig ;
+
+
 
     let res = {
       id: collateralResource.resourceAddress,
@@ -124,11 +132,15 @@
       priceUsd: priceInUSD,
       change24h: '+0.00%', // TODO: Calculate 24h change when price history is available
       isPositive: true,
-      ltv: fPercent(riskConfig.loanToValueRatio),
-      liquidationLtv: fPercent(riskConfig.loanToValueRatio.add(riskConfig.liquidationThresholdSpread)),
-      liquidationPenalty: fPercent(riskConfig.liquidationBonusRate ),
-      totalSupplied: collateralResource.totalDeposit.toNumber(),
-      totalSuppliedUsd: totalSuppliedUsd,
+      ltv: riskConfig.loanToValueRatio,
+      liquidationLtv: riskConfig.loanToValueRatio.add(riskConfig.liquidationThresholdSpread),
+      liquidationPenalty: riskConfig.liquidationBonusRate,
+      totalSuppliedDirect: collateralResource.totalDeposit,
+      totalSuppliedDirectUsd,
+      totalSuppliedWrapped: collateralResource.totalDepositUnderDU,
+      totalSuppliedWrappedUsd,
+      totalSupplied: collateralResource.totalDeposit.add( collateralResource.totalDepositUnderDU),
+      totalSuppliedUsd: totalSuppliedDirectUsd.add(totalSuppliedWrappedUsd),
       logo: iconUrl 
     }
 
@@ -137,15 +149,23 @@
   }
 
   // Get collateral data from real data, sorted by total supplied USD value descending
-  let availableCollaterals: AvailableCollateral[] = $derived(
-    marketInfoStore.collateralResources
-      .map((collateralResource) => transformCollateralData(collateralResource))
-      .sort((a, b) => b.totalSuppliedUsd - a.totalSuppliedUsd)
+  let availableCollaterals: AvailableCollateral[] = $derived.by(()=>{
+
+    
+    
+    
+
+    
+   return  marketInfoStore.collateralResources
+    .map((collateralResource) => transformCollateralData(collateralResource))
+    .sort((a, b) => b.totalSuppliedUsd.cmp(a.totalSuppliedUsd))
+  }
   );
 </script>
 
 <div class="space-y-6">
   <!-- Available Lending Pools -->
+  {#if showLending}
   <div class="card bg-base-200/60">
     <div class="card-body">
       <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
@@ -195,25 +215,25 @@
                       </div>
                       <div>
                         <div class="font-bold">{pool.asset}</div>
-                        <div class="text-sm opacity-50">{fValue(dec(pool.priceUsd))}</div>
+                        <div class="text-sm opacity-50">{fValue(pool.priceUsd)}</div>
                         <div class="text-xs {pool.isPositive ? 'text-success' : 'text-error'}">{pool.change24h}</div>
                       </div>
                     </div>
                   </td>
-                  <td><span class="font-medium text-success">{pool.supplyApr}</span></td>
-                  <td><span class="font-medium text-warning">{pool.borrowApr}</span></td>
+                  <td><span class="font-medium text-success">{fPercent(pool.supplyApr)}</span></td>
+                  <td><span class="font-medium text-warning">{fPercent(pool.borrowApr)}</span></td>
                   <td>
                     <UtilizationBar value={pool.utilization} />
                   </td>
     
                   <td class="text-sm">
-                    <AmountDisplay amount={pool.totalSupplyUnits} symbol={pool.asset} priceUSD={pool.priceUsd} />
+                    <AmountDisplay amount={pool.totalSupplyUnits}  priceUSD={pool.priceUsd} />
                   </td>
                   <td class="text-sm">
-                    <AmountDisplay amount={pool.totalBorrowUnits} symbol={pool.asset} priceUSD={pool.priceUsd} />
+                    <AmountDisplay amount={pool.totalBorrowUnits}  priceUSD={pool.priceUsd} />
                   </td>
                             <td class="text-sm">
-                    <AmountDisplay amount={pool.availableLiquidityUnits} symbol={pool.asset} priceUSD={pool.priceUsd} />
+                    <AmountDisplay amount={pool.availableLiquidityUnits}  priceUSD={pool.priceUsd} />
                   </td>    <td>
                     <div class="flex gap-2">
                       <button class="btn btn-sm btn-outline">Supply</button>
@@ -228,8 +248,10 @@
       </div>
     </div>
   </div>
+  {/if}
 
   <!-- Available Collaterals -->
+  {#if showCollaterals}
   <div class="card bg-base-200/60">
     <div class="card-body">
       <div class="flex items-center justify-between gap-3">
@@ -243,7 +265,9 @@
               <th><div class="tooltip" data-tip="Max borrowable ratio">LTV</div></th>
               <th><div class="tooltip" data-tip="Ratio at which liquidation occurs">Liquidation LTV</div></th>
               <th><div class="tooltip" data-tip="Discount applied during liquidation">Liquidation Penalty</div></th>
+              <!-- <th>Total Supplied</th> -->
               <th>Supplied</th>
+              <th>Supplied and Lent</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -275,7 +299,7 @@
                       </div>
                       <div>
                         <div class="font-bold">{collateral.asset}</div>
-                        <div class="text-sm opacity-50">{fValue(dec(collateral.priceUsd))}</div>
+                        <div class="text-sm opacity-50">{fValue(collateral.priceUsd)}</div>
                         <div class="text-xs {collateral.isPositive ? 'text-success' : 'text-error'}">{collateral.change24h}</div>
                       </div>
                     </div>
@@ -289,11 +313,17 @@
                       isPositive={collateral.isPositive}
                     />
                   </td> -->
-                  <td><span class="font-medium">{collateral.ltv}</span></td>
-                  <td><span class="font-medium">{collateral.liquidationLtv}</span></td>
-                  <td><span class="font-medium">{collateral.liquidationPenalty}</span></td>
+                  <td><span class="font-medium">{fPercent(collateral.ltv)}</span></td>
+                  <td><span class="font-medium">{fPercent(collateral.liquidationLtv)}</span></td>
+                  <td><span class="font-medium">{fPercent(collateral.liquidationPenalty)}</span></td>
+                  <!-- <td class="text-sm">
+                    <AmountDisplay amount={collateral.totalSupplied} usd={collateral.totalSuppliedUsd} />
+                  </td> -->
                   <td class="text-sm">
-                    <AmountDisplay amount={collateral.totalSupplied} symbol={collateral.asset} usd={collateral.totalSuppliedUsd} />
+                    <AmountDisplay amount={collateral.totalSuppliedDirect} usd={collateral.totalSuppliedDirectUsd} />
+                  </td>
+                  <td class="text-sm">
+                    <AmountDisplay amount={collateral.totalSuppliedWrapped} usd={collateral.totalSuppliedWrappedUsd} />
                   </td>
                   <td>
                     <div class="flex gap-2">
@@ -308,4 +338,5 @@
       </div>
     </div>
   </div>
+  {/if}
 </div>

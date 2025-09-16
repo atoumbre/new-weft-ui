@@ -1,22 +1,17 @@
-import { dec, WeftLedgerSateFetcher, type ResourceState } from '$lib/internal_modules/dist';
+import { dec, WeftLedgerSateFetcher } from '$lib/internal_modules/dist';
 
 import type Decimal from 'decimal.js';
 import { getContext, setContext } from 'svelte';
 import { BaseStore } from './base-store.svelte';
 
-export type AppResourceState = {
-	resourceState: ResourceState,
-	price?: Decimal
-}
-
-export class ResourceInfoStore extends BaseStore {
+export class PriceStore extends BaseStore {
 	async retry(): Promise<void> {
 		await this.loadResourceState(Object.keys(this.resourceData))
 	}
 
 	weftStateApi: WeftLedgerSateFetcher;
 
-	resourceData: Record<string, AppResourceState> = $state({});
+	resourceData: Record<string, Decimal> = $state({});
 
 	updater: number;
 
@@ -43,27 +38,24 @@ export class ResourceInfoStore extends BaseStore {
 
 		const addresses = [...new Set([...Object.keys(this.resourceData), ...newAddresses])]
 
-		Promise.all([
-			this.weftStateApi
-				.getFetcher()
-				.fetchResourceState(addresses),
-
-			this.weftStateApi
-				.getPriceAtLedgerState(addresses),
-		])
-			.then(([res, prices]) => {
 
 
-				this.resourceData = res.reduce((a, b) => {
+
+
+		this.weftStateApi
+			.getPrice(addresses)
+
+			.then((prices) => {
+
+
+
+
+				this.resourceData = prices.reduce((a, b) => {
 					return {
 						...a,
-						[b.$entityAddress]: {
-							resourceState: b,
-							price: prices.find((price) => price.resourceAddress === b.$entityAddress)?.price ?? dec(0)
-						}
+						[b.resourceAddress]: b.price
 					};
 				}, this.resourceData);
-
 
 
 
@@ -74,20 +66,15 @@ export class ResourceInfoStore extends BaseStore {
 
 	getFungibleResourceState(
 		address: string
-	): AppResourceState {
-		const state = this.resourceData[address];
-		if (state?.resourceState.$type === 'FungibleResource') {
-			return state;
-		} else {
-			return undefined;
-		}
+	): Decimal {
+		return this.resourceData[address] ?? dec(0);
 	}
 }
 
 const ResourceInfoStoreKey = 'ResourceInfoStore';
 
 export function setResourceInfoStore() {
-	return setContext(ResourceInfoStoreKey, new ResourceInfoStore());
+	return setContext(ResourceInfoStoreKey, new PriceStore());
 }
 
 export function getResourceInfoStore() {

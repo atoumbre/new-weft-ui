@@ -3,6 +3,8 @@
   import ListRow from '$lib/components/common/ListRow.svelte';
   import TokenCell from '$lib/components/common/TokenCell.svelte';
   import LendingForm from '$lib/components/forms/LendingForm.svelte';
+  import { dec } from '$lib/utils';
+  import type Decimal from 'decimal.js';
 
   type LendingPosition = {
     id: string;
@@ -46,8 +48,13 @@
       .slice(0, 3)
   );
 
-  function parseUsd(s: string): number {
-    return Number.parseFloat(s.replace(/[$,\s]/g, '')) || 0;
+  function parseUsdDec(s: string): Decimal {
+    const cleaned = s.replace(/[$,\s]/g, '');
+    return dec(cleaned || '0');
+  }
+  function parseUnitsDec(s: string): Decimal {
+    const cleaned = s.replace(/[,\s]/g, '');
+    return dec(cleaned || '0');
   }
 
   // Popup form controls
@@ -83,7 +90,7 @@
             {#snippet right()}
               <div class="flex items-center gap-6">
               <div class="text-right">
-                <AmountDisplay amount={position.supplied} symbol={position.asset} usd={parseUsd(position.price) * Number(position.supplied.toString().replace(/[,]/g, ''))} />
+                <AmountDisplay amount={parseUnitsDec(position.supplied)}  usd={parseUsdDec(position.price).mul(parseUnitsDec(position.supplied))} />
               </div>
                 <div class="text-right">
                   <div class="text-sm opacity-70">APR</div>

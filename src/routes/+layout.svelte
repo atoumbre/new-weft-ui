@@ -1,14 +1,14 @@
 <script lang="ts">
   import RadixConnectButton from '$lib/components/common/RadixConnectButton.svelte';
-  import { setRadixToolkitStore } from '$lib/stores/rdt.svelte';
-  import { setPythPriceStore } from '$lib/stores/pyth-price.svelte';
-  import { setMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist';
   import { setAppStateStore } from '$lib/stores/app-state.svelte';
+  import { setMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { setPythPriceStore } from '$lib/stores/pyth-price.svelte';
+  import { setRadixToolkitStore } from '$lib/stores/rdt.svelte';
+  import { setResourceInfoStore } from '$lib/stores/price-store.svelte';
   import { GatewayApiClient } from '@radixdlt/babylon-gateway-api-sdk';
-  import '../app.css';
   import { onMount } from 'svelte';
-  import { setResourceInfoStore } from '$lib/stores/resource-data-store.svelte';
-  import { WeftLedgerSateFetcher, defaultLendingPools } from '$lib/internal_modules/dist';
+  import '../app.css';
   let address = $state('0x1234...5678');
   let { children } = $props();
 
@@ -79,11 +79,34 @@
         <div class="navbar-start">
           <a href="/" class="flex items-center gap-2 no-underline hover:opacity-90 transition-opacity">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-primary"><path d="M12 2l7 4v6c0 5-3.5 9.74-7 10-3.5-.26-7-5-7-10V6l7-4z"/></svg>
-            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">CryptoLend</h1>
+            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Weft Dashboard</h1>
             <div class="badge badge-primary badge-outline badge-sm ml-2">Beta</div>
           </a>
         </div>
+        <div class="navbar-center">
+          <div class="hidden md:flex">
+            <ul class="menu menu-horizontal px-1 gap-1">
+              <li><a href="/" class="btn btn-sm btn-ghost">Market</a></li>
+              <li><a href="/lending" class="btn btn-sm btn-ghost">Lending</a></li>
+              <li><a href="/cdp" class="btn btn-sm btn-ghost">CDP</a></li>
+
+            </ul>
+          </div>
+        </div>
         <div class="navbar-end gap-3">
+          <!-- Mobile menu -->
+          <div class="dropdown dropdown-end md:hidden">
+            <button tabindex="0" role="button" class="btn btn-ghost btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
+            </button>
+            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+              <li><a href="/">Market</a></li>
+              <li><a href="/lending">Lending</a></li>
+              <li><a href="/cdp">CDP Management</a></li>
+            </ul>
+          </div>
           <!-- Theme switcher -->
           <button
             class={"btn btn-ghost btn-sm swap swap-rotate " + (theme === 'dark' ? 'swap-active' : '')}

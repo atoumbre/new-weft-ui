@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { ResourceInfoStore } from './resource-data-store.svelte';
+import type { PriceStore } from './price-store.svelte';
 import type { MarketInfoStore } from './market-info.svelte';
 import type { PythPriceStore } from './pyth-price.svelte';
 import type { StoreError } from './base-store.svelte';
@@ -12,7 +12,7 @@ export interface AppStatus {
 }
 
 export class AppStateStore {
-  private resourceStore!: ResourceInfoStore;
+  private resourceStore!: PriceStore;
   private marketInfoStore!: MarketInfoStore;
   private pythPriceStore!: PythPriceStore;
 
@@ -77,7 +77,7 @@ export class AppStateStore {
 
   private initializeStoreReferences() {
     try {
-      this.resourceStore = getContext('ResourceInfoStore') as ResourceInfoStore;
+      this.resourceStore = getContext('ResourceInfoStore') as PriceStore;
       this.marketInfoStore = getContext('MarketInfoStore') as MarketInfoStore;
       this.pythPriceStore = getContext('PythPriceStoreKey') as PythPriceStore;
     } catch (error) {
@@ -196,7 +196,7 @@ export class AppStateStore {
           loading: this.pythPriceStore.loading,
           error: this.pythPriceStore.error,
           lastFetch: this.pythPriceStore.lastFetch,
-          xrdPrice: this.pythPriceStore.xrdPrice.toNumber()
+          xrdPrice: this.pythPriceStore.xrdPrice.toString()
         }
       } : null
     };

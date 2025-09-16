@@ -1,6 +1,7 @@
 <script lang="ts">
   import HealthPill from '$lib/components/common/HealthPill.svelte';
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
+  import { dec } from '$lib/utils';
   import { createEventDispatcher } from 'svelte';
 
   type ActionType = 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay';
@@ -333,11 +334,11 @@
           <div class="grid grid-cols-2 gap-3 mt-2">
             <div>
               <div class="text-xs opacity-70">Borrow Power</div>
-              <div class="text-sm"><AmountDisplay amount={before.bpUSD} symbol={'USD'} usd={before.bpUSD} /></div>
+              <div class="text-sm"><AmountDisplay amount={dec(before.bpUSD)} usd={dec(before.bpUSD)} /></div>
             </div>
             <div>
               <div class="text-xs opacity-70">Borrow Power</div>
-              <div class="text-sm"><AmountDisplay amount={after.bpUSD} symbol={'USD'} usd={after.bpUSD} /></div>
+              <div class="text-sm"><AmountDisplay amount={dec(after.bpUSD)}  usd={dec(after.bpUSD)} /></div>
             </div>
           </div>
 
