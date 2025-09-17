@@ -1,121 +1,117 @@
-
-import { getContext, setContext } from 'svelte';
-import { BaseStore } from './base-store.svelte';
-import { type MarketConfig, type MarketProtocolFeeConfig, type LoanResource, type CollateralResource, type MarketService, type OperatingStatusValue, type LoanService, type GlobalCollateralService, WeftLedgerSateFetcher, type FungibleResourceState } from '$lib/internal_modules/dist';
-import type Decimal from 'decimal.js';
+import type { CollateralResource, FungibleResourceState, GlobalCollateralService, LoanResource, LoanService, MarketConfig, MarketProtocolFeeConfig, MarketService, OperatingStatusValue } from '$lib/internal_modules/dist'
+import type Decimal from 'decimal.js'
+import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
+import { getContext, setContext } from 'svelte'
+import { BaseStore } from './base-store.svelte'
 
 export class MarketInfoStore extends BaseStore {
   // Separate $state for each market info member
-  marketConfig: MarketConfig | null = $state(null);
-  marketFeeConfig: MarketProtocolFeeConfig | null = $state(null);
-  loanResources: LoanResource[] = $state([]);
-  collateralResources: CollateralResource[] = $state([]);
-  globalMarketService: Record<MarketService, OperatingStatusValue> | null = $state(null);
-  globalLoanService: Record<LoanService, OperatingStatusValue> | null = $state(null);
-  globalCollateralService: GlobalCollateralService | null = $state(null);
+  marketConfig: MarketConfig | null = $state(null)
+  marketFeeConfig: MarketProtocolFeeConfig | null = $state(null)
+  loanResources: LoanResource[] = $state([])
+  collateralResources: CollateralResource[] = $state([])
+  globalMarketService: Record<MarketService, OperatingStatusValue> | null = $state(null)
+  globalLoanService: Record<LoanService, OperatingStatusValue> | null = $state(null)
+  globalCollateralService: GlobalCollateralService | null = $state(null)
   lsuAmounts: {
-    resourceAddress: string;
-    amount: Decimal;
-    resourceDetails?: FungibleResourceState;
+    resourceAddress: string
+    amount: Decimal
+    resourceDetails?: FungibleResourceState
   }[] = $state([])
 
   allResourceAddresses = $derived.by(() => {
-
     return [
       ...new Set([
         ...this.loanResources.map(res => res.resourceAddress),
-        ...this.collateralResources.map(res => res.resourceAddress)
-      ])
+        ...this.collateralResources.map(res => res.resourceAddress),
+      ]),
     ]
-
   })
 
-
-
-  weftStateApi: WeftLedgerSateFetcher;
-  updaterTimer: number | undefined;
+  weftStateApi: WeftLedgerSateFetcher
+  updaterTimer: number | undefined
 
   constructor() {
     super({
       autoRetry: true,
       maxRetries: 3,
       retryDelay: 2000, // 2 seconds
-      cacheTTL: 5 * 60 * 1000 // 5 minutes
-    });
+      cacheTTL: 5 * 60 * 1000, // 5 minutes
+    })
 
-    this.weftStateApi = WeftLedgerSateFetcher.getInstance();
+    this.weftStateApi = WeftLedgerSateFetcher.getInstance()
 
     // Auto-refresh market info every 5 minutes
     this.updaterTimer = setInterval(
       () => {
-        this.loadMarketInfo();
+        this.loadMarketInfo()
       },
-      5 * 60 * 1000
-    );
+      5 * 60 * 1000,
+    )
   }
 
   async loadMarketInfo() {
     const result = await this.executeWithErrorHandling(
       async () => {
-        return await this.weftStateApi.getMarketInfos();
+        return await this.weftStateApi.getMarketInfos()
       },
       'loadMarketInfo',
-      true // retryable
-    );
+      true, // retryable
+    )
 
     if (result) {
       // Update individual $state members
-      this.marketConfig = result.marketConfig;
-      this.marketFeeConfig = result.marketFeeConfig;
-      this.loanResources = result.loanResources;
-      this.collateralResources = result.collateralResources;
-      this.globalMarketService = result.globalMarketService;
-      this.globalLoanService = result.globalLoanService;
-      this.globalCollateralService = result.globalCollateralService;
-      this.lsuAmounts = result.lsuAmounts;
+      this.marketConfig = result.marketConfig
+      this.marketFeeConfig = result.marketFeeConfig
+      this.loanResources = result.loanResources
+      this.collateralResources = result.collateralResources
+      this.globalMarketService = result.globalMarketService
+      this.globalLoanService = result.globalLoanService
+      this.globalCollateralService = result.globalCollateralService
+      this.lsuAmounts = result.lsuAmounts
     }
   }
 
   async retry() {
-    await this.loadMarketInfo();
+    await this.loadMarketInfo()
   }
 
   // Helper methods to access specific market info
   get loanResourcesByAddress() {
     return this.loanResources.reduce((acc, resource) => {
-      acc[resource.resourceAddress] = resource;
-      return acc;
-    }, {} as Record<string, LoanResource>);
+      acc[resource.resourceAddress] = resource
+      return acc
+    }, {} as Record<string, LoanResource>)
   }
 
   get collateralResourcesByAddress() {
     return this.collateralResources.reduce((acc, resource) => {
-      acc[resource.resourceAddress] = resource;
-      return acc;
-    }, {} as Record<string, CollateralResource>);
+      acc[resource.resourceAddress] = resource
+      return acc
+    }, {} as Record<string, CollateralResource>)
   }
 
   getLoanResource(resourceAddress: string): LoanResource | undefined {
-    return this.loanResourcesByAddress[resourceAddress];
+    return this.loanResourcesByAddress[resourceAddress]
   }
 
   getCollateralResource(resourceAddress: string): CollateralResource | undefined {
-    return this.collateralResourcesByAddress[resourceAddress];
+    return this.collateralResourcesByAddress[resourceAddress]
   }
 
   onDestroy() {
     if (this.updaterTimer) {
-      clearInterval(this.updaterTimer);
+      clearInterval(this.updaterTimer)
     }
   }
 }
 
-const MarketInfoStoreKey = Symbol('MarketInfoStore');
+const MarketInfoStoreKey = Symbol('MarketInfoStore')
 
 export function setMarketInfoStore() {
-  return setContext(MarketInfoStoreKey, new MarketInfoStore());
+  return setContext(MarketInfoStoreKey, new MarketInfoStore())
 }
 
 export function getMarketInfoStore() {
-  return getContext<ReturnType<typeof setMarketInfoStore>>(MarketInfoStoreKey);
+  return getContext<ReturnType<typeof setMarketInfoStore>>(MarketInfoStoreKey)
 }

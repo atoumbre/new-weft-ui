@@ -1,38 +1,40 @@
-import { getContext, setContext } from 'svelte';
-import type { PriceStore } from './price-store.svelte';
-import type { MarketInfoStore } from './market-info.svelte';
-import type { PythPriceStore } from './pyth-price.svelte';
-import type { StoreError } from './base-store.svelte';
+import type { StoreError } from './base-store.svelte'
+import type { MarketInfoStore } from './market-info.svelte'
+import type { PriceStore } from './price-store.svelte'
+import type { PythPriceStore } from './pyth-price.svelte'
+import { getContext, setContext } from 'svelte'
 
 export interface AppStatus {
-  loading: boolean;
-  error: StoreError | null;
-  lastUpdate: Date | null;
-  storeStatuses: Record<string, string>;
+  loading: boolean
+  error: StoreError | null
+  lastUpdate: Date | null
+  storeStatuses: Record<string, string>
 }
 
 export class AppStateStore {
-  private resourceStore!: PriceStore;
-  private marketInfoStore!: MarketInfoStore;
-  private pythPriceStore!: PythPriceStore;
+  private resourceStore!: PriceStore
+  private marketInfoStore!: MarketInfoStore
+  private pythPriceStore!: PythPriceStore
 
   // Global loading state - true if any store is loading
   globalLoading = $derived(() => {
-    if (!this.allStoresInitialized()) return false;
+    if (!this.allStoresInitialized())
+return false
 
-    return this.resourceStore.loading ||
-      this.marketInfoStore.loading ||
-      this.pythPriceStore.loading;
-  });
+    return this.resourceStore.loading
+      || this.marketInfoStore.loading
+      || this.pythPriceStore.loading
+  })
 
   // Global error - returns the first error found
   globalError = $derived(() => {
-    if (!this.allStoresInitialized()) return null;
+    if (!this.allStoresInitialized())
+return null
 
-    return this.resourceStore.error ||
-      this.marketInfoStore.error ||
-      this.pythPriceStore.error;
-  });
+    return this.resourceStore.error
+      || this.marketInfoStore.error
+      || this.pythPriceStore.error
+  })
 
   // Overall app status
   appStatus = $derived((): AppStatus => {
@@ -40,69 +42,71 @@ export class AppStateStore {
       ? [
         this.resourceStore.lastFetch,
         this.marketInfoStore.lastFetch,
-        this.pythPriceStore.lastFetch
+        this.pythPriceStore.lastFetch,
       ].filter(Boolean) as Date[]
-      : [];
+      : []
 
     const lastUpdate = lastUpdates.length > 0
       ? new Date(Math.max(...lastUpdates.map(d => d.getTime())))
-      : null;
+      : null
 
     return {
       loading: this.globalLoading(),
       error: this.globalError(),
       lastUpdate,
-      storeStatuses: this.getStoreStatuses()
-    };
-  });
+      storeStatuses: this.getStoreStatuses(),
+    }
+  })
 
   // Data freshness indicator
   isDataFresh = $derived(() => {
-    if (!this.allStoresInitialized()) return false;
+    if (!this.allStoresInitialized())
+return false
 
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    const stores = [this.resourceStore, this.marketInfoStore];
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000)
+    const stores = [this.resourceStore, this.marketInfoStore]
 
     return stores.every(store =>
-      store.lastFetch && store.lastFetch.getTime() > fiveMinutesAgo
-    );
-  });
+      store.lastFetch && store.lastFetch.getTime() > fiveMinutesAgo,
+    )
+  })
 
   constructor() {
     // Initialize after stores are available
     setTimeout(() => {
-      this.initializeStoreReferences();
-    }, 0);
+      this.initializeStoreReferences()
+    }, 0)
   }
 
   private initializeStoreReferences() {
     try {
-      this.resourceStore = getContext('ResourceInfoStore') as PriceStore;
-      this.marketInfoStore = getContext('MarketInfoStore') as MarketInfoStore;
-      this.pythPriceStore = getContext('PythPriceStoreKey') as PythPriceStore;
-    } catch (error) {
-      console.warn('Some stores not yet available:', error);
+      this.resourceStore = getContext('ResourceInfoStore') as PriceStore
+      this.marketInfoStore = getContext('MarketInfoStore') as MarketInfoStore
+      this.pythPriceStore = getContext('PythPriceStoreKey') as PythPriceStore
+    }
+ catch (error) {
+      console.warn('Some stores not yet available:', error)
     }
   }
 
   private allStoresInitialized(): boolean {
     return !!(
-      this.resourceStore &&
-      this.marketInfoStore &&
-      this.pythPriceStore
-    );
+      this.resourceStore
+      && this.marketInfoStore
+      && this.pythPriceStore
+    )
   }
 
   private getStoreStatuses(): Record<string, string> {
     if (!this.allStoresInitialized()) {
-      return { app: 'initializing' };
+      return { app: 'initializing' }
     }
 
     return {
       resource: this.resourceStore.status,
       marketInfo: this.marketInfoStore.status,
-      pythPrice: this.pythPriceStore.status
-    };
+      pythPrice: this.pythPriceStore.status,
+    }
   }
 
   /**
@@ -110,25 +114,26 @@ export class AppStateStore {
    */
   async refreshAll(): Promise<void> {
     if (!this.allStoresInitialized()) {
-      console.warn('Cannot refresh: stores not initialized');
-      return;
+      console.warn('Cannot refresh: stores not initialized')
+      return
     }
 
     const refreshPromises = [
       this.marketInfoStore.loadMarketInfo(),
-      this.pythPriceStore.updatePrice()
-    ];
+      this.pythPriceStore.updatePrice(),
+    ]
 
     // Resource store refresh with current addresses
-    const currentAddresses = Object.keys(this.resourceStore.resourceData);
+    const currentAddresses = Object.keys(this.resourceStore.resourceData)
     if (currentAddresses.length > 0) {
-      refreshPromises.push(this.resourceStore.loadResourceState(currentAddresses));
+      refreshPromises.push(this.resourceStore.loadResourceState(currentAddresses))
     }
 
     try {
-      await Promise.allSettled(refreshPromises);
-    } catch (error) {
-      console.error('Some stores failed to refresh:', error);
+      await Promise.allSettled(refreshPromises)
+    }
+ catch (error) {
+      console.error('Some stores failed to refresh:', error)
     }
   }
 
@@ -136,35 +141,38 @@ export class AppStateStore {
    * Clear all errors across stores
    */
   clearAllErrors(): void {
-    if (!this.allStoresInitialized()) return;
+    if (!this.allStoresInitialized())
+return;
 
     [this.resourceStore, this.marketInfoStore, this.pythPriceStore]
-      .forEach(store => {
+      .forEach((store) => {
         if ('clearError' in store && typeof store.clearError === 'function') {
-          store.clearError();
+          store.clearError()
         }
-      });
+      })
   }
 
   /**
    * Retry all failed operations
    */
   async retryAll(): Promise<void> {
-    if (!this.allStoresInitialized()) return;
+    if (!this.allStoresInitialized())
+return
 
     const retryPromises = [
       this.resourceStore,
       this.marketInfoStore,
-      this.pythPriceStore
+      this.pythPriceStore,
     ]
       .filter(store => store.error && 'retry' in store)
-      .map(store => (store as any).retry());
+      .map(store => (store as any).retry())
 
     if (retryPromises.length > 0) {
       try {
-        await Promise.allSettled(retryPromises);
-      } catch (error) {
-        console.error('Some retries failed:', error);
+        await Promise.allSettled(retryPromises)
+      }
+ catch (error) {
+        console.error('Some retries failed:', error)
       }
     }
   }
@@ -178,37 +186,39 @@ export class AppStateStore {
       globalError: this.globalError,
       isDataFresh: this.isDataFresh,
       appStatus: this.appStatus,
-      storeDetails: this.allStoresInitialized() ? {
+      storeDetails: this.allStoresInitialized()
+? {
 
         resource: {
           loading: this.resourceStore.loading,
           error: this.resourceStore.error,
           lastFetch: this.resourceStore.lastFetch,
-          resourceCount: Object.keys(this.resourceStore.resourceData).length
+          resourceCount: Object.keys(this.resourceStore.resourceData).length,
         },
         marketInfo: {
           loading: this.marketInfoStore.loading,
           error: this.marketInfoStore.error,
           lastFetch: this.marketInfoStore.lastFetch,
-          hasData: !!this.marketInfoStore.marketConfig
+          hasData: !!this.marketInfoStore.marketConfig,
         },
         pythPrice: {
           loading: this.pythPriceStore.loading,
           error: this.pythPriceStore.error,
           lastFetch: this.pythPriceStore.lastFetch,
-          xrdPrice: this.pythPriceStore.xrdPrice.toString()
-        }
-      } : null
-    };
+          xrdPrice: this.pythPriceStore.xrdPrice.toString(),
+        },
+      }
+: null,
+    }
   }
 }
 
-const AppStateStoreKey = Symbol('AppStateStore');
+const AppStateStoreKey = Symbol('AppStateStore')
 
 export function setAppStateStore() {
-  return setContext(AppStateStoreKey, new AppStateStore());
+  return setContext(AppStateStoreKey, new AppStateStore())
 }
 
 export function getAppStateStore() {
-  return getContext<ReturnType<typeof setAppStateStore>>(AppStateStoreKey);
+  return getContext<ReturnType<typeof setAppStateStore>>(AppStateStoreKey)
 }

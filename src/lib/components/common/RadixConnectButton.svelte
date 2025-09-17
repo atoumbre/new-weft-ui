@@ -1,12 +1,10 @@
-<script lang="ts">
+<script lang='ts'>
 
-	
 </script>
 
-
-<div class="connect-btn">
-	<!-- svelte-ignore element_invalid_self_closing_tag -->
-	<radix-connect-button />
+<div class='connect-btn'>
+  <!-- svelte-ignore element_invalid_self_closing_tag -->
+  <radix-connect-button />
 </div>
 
 <style>
