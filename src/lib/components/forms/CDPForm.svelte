@@ -47,8 +47,8 @@
       { symbol: 'DAI', logo: '🪙' },
     ],
     prices = { ETH: 2485.67, WBTC: 67234.12, LINK: 15.0, MATIC: 0.9, USDC: 1, USDT: 1, DAI: 1 },
-    ltv = { ETH: 0.75, WBTC: 0.7, LINK: 0.65, MATIC: 0.6 },
-    liqThreshold = { ETH: 0.85, WBTC: 0.8, LINK: 0.75, MATIC: 0.7 },
+    ltv = { ETH: 1.00, WBTC: 0.7, LINK: 0.65, MATIC: 0.6 },
+    liqThreshold = { ETH: 0.85, WBTC: 0.8, LINK: 1.00, MATIC: 0.7 },
     currentCollateral = {},
     currentDebt = {},
     balancesCollateral = {},
@@ -362,9 +362,9 @@
           <div class='flex items-center justify-between'>
             <div class='text-xs opacity-70'>Health</div>
             <div class='flex items-center gap-2'>
-              <HealthPill ratio={before.health} showValue={true} />
+              <HealthPill ltv={dec(before.health)} showValue={true} />
               <span>→</span>
-              <HealthPill ratio={after.health} showValue={true} />
+              <HealthPill ltv={dec(after.health)} showValue={true} />
             </div>
           </div>
           <div class='flex justify-end mt-3'>

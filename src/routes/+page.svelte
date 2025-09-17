@@ -1,28 +1,30 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
   import CollateralsSection from '$lib/components/CollateralsSection.svelte'
-  import StatCard from '$lib/components/common/StatCard.svelte'
   import LendingPoolsSection from '$lib/components/LendingPoolsSection.svelte'
+  import Tab from '$lib/components/common/Tab.svelte'
+  import Tabs from '$lib/components/common/Tabs.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { getResourceInfoStore } from '$lib/stores/price-store.svelte'
-  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte'
+  import { getPriceStore } from '$lib/stores/price-store.svelte'
+  import {getXRDPriceStore} from '$lib/stores/xrd-price-store.svelte'
   import { dec, fValue } from '$lib/utils'
 
   let activeTab = $state<'lending' | 'collaterals'>('lending')
 
   const marketInfoStore = getMarketInfoStore()
-  const resourceStore = getResourceInfoStore()
-  const pythPriceStore = getPythPriceStore()
+  const priceStore = getPriceStore()
+  const xrdPriceStore = getXRDPriceStore()
 
   // Calculate real totals from lending pools
   const totalLending: { totalSuppliedUSD: Decimal, totalBorrowedUSD: Decimal, totalLiquidityUSD: Decimal } = $derived.by(() => {
     return marketInfoStore.loanResources.reduce(
       (sum, loanResource) => {
-        const priceInXRD = resourceStore.getFungibleResourceState(loanResource.resourceAddress)
-        const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice)
+    const {current:priceInXRD,previous:previousPriceInXRD } = priceStore.getPrice(loanResource.resourceAddress)
+    const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
 
-        sum.totalSuppliedUSD = sum.totalSuppliedUSD.add(loanResource.lendingPoolState.totalDeposit.mul(priceInUSD))
-        sum.totalBorrowedUSD = sum.totalBorrowedUSD.add(loanResource.lendingPoolState.totalLoan.mul(priceInUSD))
+
+        sum.totalSuppliedUSD = sum.totalSuppliedUSD.add(loanResource.lendingPoolState?.totalDeposit.mul(priceInUSD)??dec(0))
+        sum.totalBorrowedUSD = sum.totalBorrowedUSD.add(loanResource.lendingPoolState?.totalLoan.mul(priceInUSD)?? dec(0))
         sum.totalLiquidityUSD = sum.totalSuppliedUSD.sub(sum.totalBorrowedUSD)
         return sum
       },
@@ -32,8 +34,9 @@
 
   const totalCollateral = $derived.by(() => marketInfoStore.collateralResources.reduce(
     (sum, collateralResource) => {
-      const priceInXRD = resourceStore.getFungibleResourceState(collateralResource.resourceAddress)
-      const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice)
+    const {current:priceInXRD,previous:previousPriceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
+    const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
+
 
       sum.totalDepositUSD = sum.totalDepositUSD.add(collateralResource.totalDeposit.mul(priceInUSD))
       sum.totalDepositUnderDUUSD = sum.totalDepositUnderDUUSD.add(collateralResource.totalDepositUnderDU.mul(priceInUSD))
@@ -46,15 +49,15 @@
   ))
 
   const totalLSUCollateral = $derived.by(() => {
-    if (resourceStore.status === 'not loaded')
+    if (priceStore.status === 'not loaded')
       return dec(0)
 
     return marketInfoStore.lsuAmounts.reduce(
       (sum, lsuData) => {
-        const priceInXRD = (lsuData.resourceDetails.$nativeResourceDetails.kind === 'ValidatorLiquidStakeUnit')
-          ? dec(lsuData.resourceDetails.$nativeResourceDetails.unit_redemption_value[0].amount)
+        const priceInXRD = (lsuData.resourceDetails?.$details.native_resource_details?.kind === 'ValidatorLiquidStakeUnit')
+          ? dec(lsuData.resourceDetails.$details.native_resource_details?.unit_redemption_value[0].amount??dec(0))
           : dec(0)
-        const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice)
+        const priceInUSD = priceInXRD.mul(xrdPriceStore.xrdPrice)
 
         sum = sum.add(lsuData.amount.mul(priceInUSD))
 
@@ -66,36 +69,58 @@
 
 </script>
 
-<!-- Market Stats -->
-<div class='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
-  <StatCard label='Total Supplied' value={fValue(totalLending.totalSuppliedUSD)} delta='+12.5%' deltaTone='success' />
-  <StatCard label='Total Borrowed' value={fValue(totalLending.totalBorrowedUSD)} delta='+3.2%' deltaTone='muted' />
-  <StatCard label='Liquidity' value={fValue(totalLending.totalLiquidityUSD)} delta='+8.7%' deltaTone='success' />
-  <StatCard label='Total Collateral' value={fValue(totalCollateral.total.add(totalLSUCollateral))} delta='+5.2%' deltaTone='success' />
-</div>
+<svelte:head>
+  <title>Markets - Weft</title>
+</svelte:head>
 
-<!-- Tabs -->
-<div class='space-y-6'>
+<div class='container mx-auto px-4 py-8 space-y-6'>
+  <div class='flex items-center justify-between'>
+    <div>
+      <h1 class='text-3xl font-bold mb-2'>Markets</h1>
+      <p class='text-base-content/70'>Explore lending pools and collateral markets</p>
+    </div>
+    <div class='flex gap-2'>
+      <button class='btn btn-outline btn-sm' onclick={() => {marketInfoStore.loadMarketInfo(); priceStore.loadPrices(); xrdPriceStore.updatePrice()}}>
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' class='h-4 w-4'>
+          <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Market Stats -->
+  <div class='grid grid-cols-1 md:grid-cols-4 gap-4'>
+    <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat-title'>Total Supplied</div>
+      <div class='stat-value text-xl'>{fValue(totalLending.totalSuppliedUSD)}</div>
+      <div class='stat-desc text-success'>+12.5%</div>
+    </div>
+    <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat-title'>Total Borrowed</div>
+      <div class='stat-value text-xl'>{fValue(totalLending.totalBorrowedUSD)}</div>
+      <div class='stat-desc'>+3.2%</div>
+    </div>
+    <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat-title'>Available Liquidity</div>
+      <div class='stat-value text-xl'>{fValue(totalLending.totalLiquidityUSD)}</div>
+      <div class='stat-desc text-success'>+8.7%</div>
+    </div>
+    <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat-title'>Total Collateral</div>
+      <div class='stat-value text-xl'>{fValue(totalCollateral.total.add(totalLSUCollateral))}</div>
+      <div class='stat-desc text-success'>+5.2%</div>
+    </div>
+  </div>
+
   <!-- Tab Navigation -->
-  <div class='tabs tabs-bordered'>
-    <button
-      class="tab {activeTab === 'lending' ? 'tab-active' : ''}"
-      onclick={() => activeTab = 'lending'}
-    >
-      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' class='h-4 w-4 mr-2'>
-        <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1' />
-      </svg>
-      Available Lending Pools
-    </button>
-    <button
-      class="tab {activeTab === 'collaterals' ? 'tab-active' : ''}"
-      onclick={() => activeTab = 'collaterals'}
-    >
-      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' class='h-4 w-4 mr-2'>
-        <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' />
-      </svg>
-      Available Collaterals
-    </button>
+  <div class='card bg-base-200/60'>
+    <div class='card-body py-4'>
+      <Tabs>
+        <Tab id='lending' bind:activeId={activeTab} label='Available Lending Pools' />
+        <Tab id='collaterals' bind:activeId={activeTab} label='Available Collaterals' />
+      </Tabs>
+    </div>
   </div>
 
   <!-- Tab Content -->

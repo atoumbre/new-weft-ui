@@ -66,7 +66,6 @@
     { id: 'CDP-001', collaterals: [{ asset: 'ETH', amount: '5.0', value: '$12,500', price: '$2,485.67', change24h: '+3.24', isPositive: true, logo: '⟠', ltv: '75%' }, { asset: 'WBTC', amount: '0.15', value: '$6,750', price: '$67,234.12', change24h: '-1.85', isPositive: false, logo: '₿', ltv: '70%' }], loans: [{ asset: 'USDC', borrowed: '8,500', interestRate: '5.25', price: '$1.00', change24h: '+0.02', isPositive: true, logo: '💰' }, { asset: 'DAI', borrowed: '2,000', interestRate: '4.85', price: '$0.998', change24h: '-0.12', isPositive: false, logo: '🪙' }], healthRatio: 2.1, totalCollateral: '$19,250', totalDebt: '$10,500', liquidationPrice: '$1,890', status: 'healthy' },
     { id: 'CDP-002', collaterals: [{ asset: 'LINK', amount: '1,200', value: '$18,000', price: '$15.00', change24h: '+2.15', isPositive: true, logo: '🔗', ltv: '65%' }], loans: [
       { asset: 'USDT', borrowed: '12,000', interestRate: '6.15', price: '$1.001', change24h: '+0.08', isPositive: true, logo: '💵' },
-      { asset: 'USDTW', borrowed: '12,000', interestRate: '6.15', price: '$1.001', change24h: '+0.08', isPositive: true, logo: '💵' },
     ], healthRatio: 1.45, totalCollateral: '$18,000', totalDebt: '$12,000', liquidationPrice: '$12.50', status: 'warning' },
     { id: 'CDP-003', collaterals: [{ asset: 'MATIC', amount: '15,000', value: '$13,500', price: '$0.90', change24h: '-4.25', isPositive: false, logo: '🔷', ltv: '60%' }], loans: [{ asset: 'DAI', borrowed: '7,200', interestRate: '4.95', price: '$0.998', change24h: '-0.12', isPositive: false, logo: '🪙' }], healthRatio: 1.85, totalCollateral: '$13,500', totalDebt: '$7,200', liquidationPrice: '$0.65', status: 'healthy' },
   ]
@@ -233,7 +232,7 @@
                 onclick={() => (selectedCDP = cdp.id)}
               >
                 <span class='font-medium'>{cdp.id}</span>
-                <span class='ml-2'><HealthPill ratio={cdp.healthRatio} /></span>
+                <span class='ml-2'><HealthPill ltv={dec(cdp.healthRatio)} /></span>
               </button>
             {/each}
           </div>
@@ -265,7 +264,7 @@
             </div>
             <div>
               <div class='text-sm opacity-70'>Health</div>
-              <div class='text-lg font-semibold'><HealthPill ratio={currentCDP.healthRatio} showValue={true} /></div>
+              <div class='text-lg font-semibold'><HealthPill ltv={dec(currentCDP.healthRatio)} showValue={true} /></div>
             </div>
           </div>
         </div>

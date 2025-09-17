@@ -1,54 +1,51 @@
 <script lang='ts'>
   import RadixConnectButton from '$lib/components/common/RadixConnectButton.svelte'
   import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
-  import { setAppStateStore } from '$lib/stores/app-state.svelte'
   import { setCdpStore } from '$lib/stores/cdp-store.svelte'
   import { setMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { setResourceInfoStore } from '$lib/stores/price-store.svelte'
-  import { setPythPriceStore } from '$lib/stores/pyth-price.svelte'
+  import { setPriceStore } from '$lib/stores/price-store.svelte'
+  import { setXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { setRadixToolkitStore } from '$lib/stores/rdt.svelte'
   import { GatewayApiClient } from '@radixdlt/babylon-gateway-api-sdk'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import '../app.css'
 
-  const address = $state('0x1234...5678')
+
   const { children } = $props()
 
-  // Initialize stores immediately
-  const gatewayApiClient = GatewayApiClient.initialize({
-    basePath: 'https://mainnet.radixdlt.com',
-    applicationName: 'Weft API',
-    headers: {
-      'User-Agent': 'WeftFinance',
-    },
-  })
+  const themes = ['light', 'dark'] as const
+  
+  type Theme = (typeof themes)[number]
+  let theme: Theme = $state('light')
 
-  WeftLedgerSateFetcher.setInstance(gatewayApiClient)
+
+
 
   // Set up stores synchronously
   setRadixToolkitStore()
-  const resourceStore = setResourceInfoStore()
-  const pythStore = setPythPriceStore()
+  const resourceStore = setPriceStore()
+  const xrdPriceStore = setXRDPriceStore()
   const marketInfoStore = setMarketInfoStore()
   const cdpStore = setCdpStore()
-  setAppStateStore()
 
-  // Theme state and persistence
-  const themes = ['light', 'dark'] as const
-  type Theme = (typeof themes)[number]
-  let theme: Theme = $state('light')
 
   onMount(async () => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null
     if (saved && (themes as readonly string[]).includes(saved))
       theme = saved as Theme
 
-    // Load data after mount
-    pythStore.updatePrice()
-    marketInfoStore.loadMarketInfo().then(() => {
+      xrdPriceStore.updatePrice()
+      marketInfoStore.loadMarketInfo().then(() => {
       cdpStore.loadCdpData()
-      resourceStore.loadResourceState(marketInfoStore.allResourceAddresses)
+      resourceStore.loadPrices(marketInfoStore.allResourceAddresses)
     })
+  })
+
+  onDestroy(() => {
+    resourceStore.onDestroy?.()
+    xrdPriceStore.onDestroy?.()
+    marketInfoStore.onDestroy?.()
+    cdpStore.onDestroy?.()
   })
 
   $effect(() => {
@@ -61,19 +58,7 @@
     theme = themes[(i + 1) % themes.length]
   }
 
-  // UI polish helpers
-  const shorten = (a: string) => (a?.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
-  let copied = $state(false)
-  let copyTimer: number | undefined
-  async function copyAddress() {
-    try {
-      await navigator.clipboard?.writeText(address)
-      copied = true
-      clearTimeout(copyTimer)
-      copyTimer = window.setTimeout(() => (copied = false), 1200)
-    }
-    catch {}
-  }
+
 
 </script>
 
@@ -93,8 +78,8 @@
             <ul class='menu menu-horizontal px-1 gap-1'>
               <li><a href='/' class='btn btn-sm btn-ghost'>Market</a></li>
               <li><a href='/explore' class='btn btn-sm btn-ghost'>CDP Explorer</a></li>
-              <li><a href='/lending' class='btn btn-sm btn-ghost'>Lending</a></li>
-              <li><a href='/cdp' class='btn btn-sm btn-ghost'>Manage CDPs</a></li>
+              <!-- <li><a href='/lending' class='btn btn-sm btn-ghost'>Lending</a></li>
+              <li><a href='/cdp' class='btn btn-sm btn-ghost'>Manage CDPs</a></li> -->
             </ul>
           </div>
         </div>
@@ -109,8 +94,8 @@
             <ul class='menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow'>
               <li><a href='/'>Market</a></li>
               <li><a href='/explore'>CDP Explorer</a></li>
-              <li><a href='/lending'>Lending</a></li>
-              <li><a href='/cdp'>Manage CDPs</a></li>
+              <!-- <li><a href='/lending'>Lending</a></li>
+              <li><a href='/cdp'>Manage CDPs</a></li> -->
             </ul>
           </div>
           <!-- Theme switcher -->
@@ -131,7 +116,7 @@
             </svg>
           </button>
 
-          <RadixConnectButton />
+          <!-- <RadixConnectButton /> -->
         </div>
       </div>
     </div>

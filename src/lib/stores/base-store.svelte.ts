@@ -49,7 +49,7 @@ export abstract class BaseStore {
       this.lastFetch = new Date()
       return result
     }
- catch (error) {
+    catch (error) {
       const storeError: StoreError = {
         code: this.getErrorCode(error),
         message: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -62,7 +62,7 @@ export abstract class BaseStore {
       console.error(`Store operation failed [${operationName}]:`, storeError)
       return null
     }
- finally {
+    finally {
       this.loading = false
     }
   }
@@ -81,7 +81,7 @@ export abstract class BaseStore {
       try {
         return await operation()
       }
- catch (error) {
+      catch (error) {
         lastError = error
 
         if (attempt === maxAttempts || !this.isRetryableError(error)) {
@@ -133,11 +133,11 @@ export abstract class BaseStore {
     if (error instanceof Error) {
       // Check for common error patterns
       if (error.message.includes('fetch'))
-return 'NETWORK_ERROR'
+        return 'NETWORK_ERROR'
       if (error.message.includes('timeout'))
-return 'TIMEOUT_ERROR'
+        return 'TIMEOUT_ERROR'
       if (error.message.includes('parse') || error.message.includes('JSON'))
-return 'PARSE_ERROR'
+        return 'PARSE_ERROR'
     }
 
     if (typeof error === 'object' && error !== null && 'status' in error) {
@@ -165,7 +165,7 @@ return 'PARSE_ERROR'
    */
   protected isDataFresh(): boolean {
     if (!this.lastFetch)
-return false
+      return false
     return Date.now() - this.lastFetch.getTime() < this.options.cacheTTL
   }
 
@@ -174,11 +174,11 @@ return false
    */
   get status(): string {
     if (this.loading)
-return 'loading'
+      return 'loading'
     if (this.error)
-return `error: ${this.error.code}`
+      return `error: ${this.error.code}`
     if (this.lastFetch)
-return `fresh (${new Date(this.lastFetch).toLocaleTimeString()})`
+      return `fresh (${new Date(this.lastFetch).toLocaleTimeString()})`
     return 'not loaded'
   }
 }

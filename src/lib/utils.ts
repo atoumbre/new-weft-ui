@@ -8,7 +8,7 @@ export const usdFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
 })
 
-export function fValue(n: Decimal, { price, fullPrecision }: { price?: boolean, fullPrecision?: boolean } = { price: true, fullPrecision: false }): string {
+export function fValue(n: Decimal, { price, fullPrecision }: { price?: boolean, fullPrecision?: boolean } = { price: true, fullPrecision: true }): string {
   const defaultFormat = `${price ? '$' : ''}0,0.XX`
 
   const minSignificantDigits = 2
@@ -35,13 +35,13 @@ export function fValue(n: Decimal, { price, fullPrecision }: { price?: boolean, 
     // digitsToShow is small (0..minSig), safe to use as a JS number for pattern construction
     return format(
       n.toFixed(digitsToShow),
-      `${price ? '$' : ''}0,0.${new Array(digitsToShow).fill('X').join('')}`,
+      `${price ? '$' : ''}0,0.${(Array.from({ length: digitsToShow })).fill('X').join('')}`,
       { currency: 'USD' },
     )
   }
 }
 
-export const fAmount = (amount: Decimal) => fValue(amount, { price: false })
+export const fAmount = (amount: Decimal, fullPrecision = true) => fValue(amount, { price: false, fullPrecision })
 
 export function fPercent(amount: Decimal) {
   // numerable accepts string input; avoid Decimal -> number conversion

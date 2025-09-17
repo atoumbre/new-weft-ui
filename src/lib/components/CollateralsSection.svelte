@@ -1,17 +1,18 @@
 <script lang='ts'>
-  import type { CollateralResource } from '$lib/internal_modules/dist'
-  import type Decimal from 'decimal.js'
-  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
-  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { getResourceInfoStore } from '$lib/stores/price-store.svelte'
-  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte'
-  import { fPercent, fValue } from '$lib/utils'
+  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
+  import type { CollateralResource } from '$lib/internal_modules/dist';
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { getPriceStore } from '$lib/stores/price-store.svelte';
+  import { fPercent } from '$lib/utils';
+  import type Decimal from 'decimal.js';
+  import AssetCard from './common/AssetCard.svelte';
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
 
   type AvailableCollateral = {
     id: string
     asset: string
     priceUsd: Decimal
-    change24h: string | number
+    previousPriceInUSD: Decimal
     isPositive: boolean
     ltv: Decimal
     liquidationLtv: Decimal
@@ -22,17 +23,18 @@
     totalSuppliedDirectUsd: Decimal
     totalSuppliedWrapped: Decimal
     totalSuppliedWrappedUsd: Decimal
-    logo: string
+    logo: string | undefined
   }
 
   const marketInfoStore = getMarketInfoStore()
-  const resourceStore = getResourceInfoStore()
-  const pythPriceStore = getPythPriceStore()
+  const priceStore = getPriceStore()
+  const xrdPriceStore = getXRDPriceStore()
 
   function transformCollateralData(collateralResource: CollateralResource): AvailableCollateral {
-    const priceInXRD = resourceStore.getFungibleResourceState(collateralResource.resourceAddress)
-    const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice)
-
+    const {current:priceInXRD,previous:previousPriceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
+    const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
+    const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
+    
     // Get token symbol from resource info or default
     const symbol = collateralResource?.resourceDetails?.$metadata?.symbol
       || collateralResource?.resourceDetails?.$metadata?.name
@@ -51,7 +53,7 @@
       id: collateralResource.resourceAddress,
       asset: symbol,
       priceUsd: priceInUSD,
-      change24h: '+0.00%', // TODO: Calculate 24h change when price history is available
+      previousPriceInUSD: previousPriceInUSD,
       isPositive: true,
       ltv: riskConfig.loanToValueRatio,
       liquidationLtv: riskConfig.loanToValueRatio.add(riskConfig.liquidationThresholdSpread),
@@ -86,7 +88,7 @@
         <thead class='bg-base-300/30 backdrop-blur sticky top-0'>
           <tr>
             <th>Asset</th>
-            <th><div class='tooltip' data-tip='Max borrowable ratio'>LTV</div></th>
+            <th><div class='tooltip' data-tip='Max allowed borrow ratio'>LTV</div></th>
             <th><div class='tooltip' data-tip='Ratio at which liquidation occurs'>Liquidation LTV</div></th>
             <th><div class='tooltip' data-tip='Discount applied during liquidation'>Liquidation Penalty</div></th>
             <th>Supplied</th>
@@ -110,7 +112,7 @@
             {#each availableCollaterals as collateral}
               <tr>
                 <td>
-                  <div class='flex items-center gap-3'>
+                  <!-- <div class='flex items-center gap-3'>
                     <div class='avatar'>
                       <div class='mask mask-circle w-8 h-8'>
                         {#if collateral.logo?.startsWith('http')}
@@ -123,9 +125,11 @@
                     <div>
                       <div class='font-bold'>{collateral.asset}</div>
                       <div class='text-sm opacity-50'>{fValue(collateral.priceUsd)}</div>
-                      <div class="text-xs {collateral.isPositive ? 'text-success' : 'text-error'}">{collateral.change24h}</div>
+                      <div class="text-xs {collateral.isPositive ? 'text-success' : 'text-error'}">{collateral.previousPriceInUSD}</div>
                     </div>
-                  </div>
+                  </div> -->
+
+        <AssetCard symbol={collateral.asset} iconUrl={collateral.logo} previousPriceUsd={collateral.previousPriceInUSD} priceUsd={collateral.priceUsd}></AssetCard>
                 </td>
                 <td><span class='font-medium'>{fPercent(collateral.ltv)}</span></td>
                 <td><span class='font-medium'>{fPercent(collateral.liquidationLtv)}</span></td>

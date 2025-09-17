@@ -12,8 +12,8 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		--radix-connect-button-width: 11.25rem;
-		--radix-connect-button-height: 2.875rem;
+		--radix-connect-button-width: 8.25rem;
+		--radix-connect-button-height: 1.875rem;
 		--radix-connect-button-border-radius: 0.5rem;
 	}
 	@media (max-width: 384px) {

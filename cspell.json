@@ -9,10 +9,14 @@
     "Cdps",
     "Collateralized",
     "cryptolend",
+    "DUUSD",
     "KOUASSI",
+    "nftw",
+    "nums",
     "pythnetwork",
     "radixdlt",
     "retryable",
+    "underlyings",
     "Vite"
   ],
   // flagWords - list of words to be always considered incorrect
@@ -23,5 +27,5 @@
   // Including "Spanish" in the list of dictionaries means both Spanish and English
   // words will be considered correct.
   "dictionaries": [],
-  "ignorePaths": ["./.cargo/**", "./target/**", "./**/*.rtm", "./**/*.wasm"]
+  "ignorePaths": []
 }

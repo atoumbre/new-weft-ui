@@ -260,7 +260,7 @@
             </div>
             <div>
               <div class='text-sm opacity-70'>Health</div>
-              <div class='text-lg font-semibold'><HealthPill ratio={currentCDP.healthRatio} showValue={true} /></div>
+              <div class='text-lg font-semibold'><HealthPill ltv={dec(currentCDP.healthRatio)} showValue={true} /></div>
             </div>
 
           </div>

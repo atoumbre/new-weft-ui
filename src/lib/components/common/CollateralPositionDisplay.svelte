@@ -17,7 +17,7 @@
   // Get resource info from market store - lookup order: collateral, loan, lsu
   const resourceInfo = $derived.by(() => {
     // First try collateralResources
-    let resource: CollateralResource | LoanResource = marketInfoStore.collateralResources.find(res => res.resourceAddress === resourceAddress)
+    let resource: CollateralResource | LoanResource | undefined= marketInfoStore.collateralResources.find(res => res.resourceAddress === resourceAddress)
     if (resource)
       return resource
 
@@ -26,7 +26,7 @@
     if (resource)
       return resource
 
-    resource = marketInfoStore.loanResources.find(res => res.lendingPoolState.depositUnitAddress === resourceAddress)
+    resource = marketInfoStore.loanResources.find(res => res.lendingPoolState?.depositUnitAddress === resourceAddress)
     if (resource)
       return resource
 
@@ -89,8 +89,8 @@
 
   <!-- Amount, Symbol, and USD Value -->
   <span class='truncate'>
-    <span class='font-medium'>{fAmount(amount)}</span>
+    <span class='font-medium'>{fAmount(amount,false)}</span>
     <span class='opacity-70 ml-1'>{symbol}</span>
-    <span class='opacity-60 ml-1'>({fValue(usdValue)})</span>
+    <span class='opacity-60 ml-1'>({fValue(usdValue,{fullPrecision:false})})</span>
   </span>
 </div>

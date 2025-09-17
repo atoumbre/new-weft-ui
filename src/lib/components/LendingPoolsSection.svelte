@@ -1,44 +1,49 @@
 <script lang='ts'>
-  import type { LoanResource } from '$lib/internal_modules/dist'
-  import type Decimal from 'decimal.js'
-  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
-  import UtilizationBar from '$lib/components/common/UtilizationBar.svelte'
-  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { getResourceInfoStore } from '$lib/stores/price-store.svelte'
-  import { getPythPriceStore } from '$lib/stores/pyth-price.svelte'
-  import { fPercent, fValue } from '$lib/utils'
+  import AssetCard from './common/AssetCard.svelte';
+
+  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
+  import UtilizationBar from '$lib/components/common/UtilizationBar.svelte';
+  import type { LoanResource } from '$lib/internal_modules/dist';
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
+  import { fPercent } from '$lib/utils';
+  import type Decimal from 'decimal.js';
+  import { getPriceStore } from '$lib/stores/price-store.svelte';
 
   type MarketPool = {
     id: string
     asset: string
-    utilization: Decimal // 0..100
+    utilization: Decimal 
     supplyApr: Decimal
     borrowApr: Decimal
-    priceUsd: Decimal // per-unit USD price
-    change24h: string | number
+    priceUsd: Decimal 
+    previousPriceInUSD:   Decimal
     isPositive: boolean
     availableLiquidityUnits: Decimal
     totalSupplyUnits: Decimal
     totalBorrowUnits: Decimal
-    logo: string
+    logo: string | undefined
   }
 
   const marketInfoStore = getMarketInfoStore()
-  const resourceStore = getResourceInfoStore()
-  const pythPriceStore = getPythPriceStore()
+  const priceStore = getPriceStore()
+  const xrdPriceStore = getXRDPriceStore()
 
   function transformPoolData(loanResource: LoanResource): MarketPool {
-    const priceInXRD = resourceStore.getFungibleResourceState(loanResource.resourceAddress)
-    const priceInUSD = priceInXRD.mul(pythPriceStore.xrdPrice)
+    
+    const {current:priceInXRD,previous:previousPriceInXRD } = priceStore.getPrice(loanResource.resourceAddress)
+    const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
+    const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
 
-    // Get token symbol from resource info or default
-    const symbol = loanResource?.resourceDetails?.$metadata?.symbol
+
+
+const symbol = loanResource?.resourceDetails?.$metadata?.symbol
       || loanResource?.resourceDetails?.$metadata?.name
       || loanResource.resourceAddress.slice(-4)
 
     const iconUrl = loanResource?.resourceDetails?.$metadata?.iconUrl
 
-    const pool = loanResource.lendingPoolState
+    const pool = loanResource.lendingPoolState!
     // Calculate utilization percentage
     const utilization = pool.utilizationRate.mul(100)
 
@@ -52,7 +57,7 @@
       supplyApr: pool.netLendingApr,
       borrowApr: pool.borrowingApr,
       priceUsd: priceInUSD,
-      change24h: '+0.00%', // TODO: Calculate 24h change when price history is available
+      previousPriceInUSD: previousPriceInUSD, 
       isPositive: true,
       availableLiquidityUnits: availableLiquidity,
       totalSupplyUnits: pool.totalDeposit,
@@ -85,7 +90,7 @@
             <th><div class='tooltip' data-tip='Borrowed / Supplied'>Utilization</div></th>
             <th>Supplied</th>
             <th>Borrowed</th>
-            <th><div class='tooltip' data-tip='Immediately borrowable liquidity'>Liquidity</div></th>
+            <th><div class='tooltip' data-tip='Liquidity immediately available for loans'>Liquidity</div></th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -105,22 +110,7 @@
             {#each marketPools as pool}
               <tr>
                 <td>
-                  <div class='flex items-center gap-3'>
-                    <div class='avatar'>
-                      <div class='mask mask-circle w-8 h-8'>
-                        {#if pool.logo?.startsWith('http')}
-                          <img src={pool.logo} alt={pool.asset} />
-                        {:else}
-                          <div class='bg-base-300 flex items-center justify-center text-lg'>{pool.logo}</div>
-                        {/if}
-                      </div>
-                    </div>
-                    <div>
-                      <div class='font-bold'>{pool.asset}</div>
-                      <div class='text-sm opacity-50'>{fValue(pool.priceUsd)}</div>
-                      <div class="text-xs {pool.isPositive ? 'text-success' : 'text-error'}">{pool.change24h}</div>
-                    </div>
-                  </div>
+                  <AssetCard symbol={pool.asset} iconUrl={pool.logo} previousPriceUsd={pool.previousPriceInUSD} priceUsd={pool.priceUsd}></AssetCard>
                 </td>
                 <td><span class='font-medium text-success'>{fPercent(pool.supplyApr)}</span></td>
                 <td><span class='font-medium text-warning'>{fPercent(pool.borrowApr)}</span></td>

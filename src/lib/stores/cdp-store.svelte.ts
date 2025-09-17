@@ -2,16 +2,15 @@ import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
 import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
-import { getPythPriceStore } from './pyth-price.svelte'
 
 export class CdpStore extends BaseStore {
   cdpList: CollateralizeDebtPositionData[] = $state([])
+  cdpLoadingState: { total: number, loaded: number } | undefined = $state()
   cdpIds: any[] = $state([])
   filteredCdpList: CollateralizeDebtPositionData[] = $state([])
 
   weftStateApi: WeftLedgerSateFetcher
   updaterTimer: number | undefined
-  pythPriceStore: ReturnType<typeof getPythPriceStore>
 
   constructor() {
     super({
@@ -22,8 +21,6 @@ export class CdpStore extends BaseStore {
     })
 
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
-    this.pythPriceStore = getPythPriceStore()
-
     // Auto-refresh CDP data every 5 minutes
     this.updaterTimer = setInterval(
       () => {
@@ -39,10 +36,18 @@ export class CdpStore extends BaseStore {
         // Fetch all CDP IDs
         const AllIds = await this.weftStateApi.getCdpIds()
 
+        this.cdpLoadingState = { total: AllIds.length, loaded: 0 }
+
         const ids = AllIds.map(a => a.non_fungible_id)
 
         // Fetch multiple CDP data
-        const list = await WeftLedgerSateFetcher.getInstance().getMultipleCdp(ids)
+        const list = await WeftLedgerSateFetcher.getInstance().getMultipleCdp(ids, {
+          onProgress: (newlyFetched) => {
+            this.cdpLoadingState!.loaded += newlyFetched
+          },
+        })
+
+        this.cdpLoadingState = undefined
 
         return { ids: AllIds, list }
       },
@@ -61,13 +66,11 @@ export class CdpStore extends BaseStore {
     await this.loadCdpData()
   }
 
-  // Filter out CDPs with no collateral and loan positions
+  // Filter to show only CDPs with loan positions
   private filterActiveCdps() {
     this.filteredCdpList = this.cdpList.filter((cdp) => {
-      const hasCollateral = Object.keys(cdp.collateralPositions || {}).length > 0
-        || Object.keys(cdp.nftCollateralPositions || {}).length > 0
       const hasLoans = Object.keys(cdp.loanPositions || {}).length > 0
-      return hasCollateral || hasLoans
+      return hasLoans
     })
   }
 
@@ -76,6 +79,18 @@ export class CdpStore extends BaseStore {
       clearInterval(this.updaterTimer)
     }
   }
+}
+
+export function inEfficiency(cdp?: CollateralizeDebtPositionData): boolean {
+  if (!cdp)
+    return false
+
+  const collateralPositions = [
+    ...Object.values(cdp?.collateralPositions || []),
+    ...Object.values(cdp?.nftCollateralPositions || {}).flatMap(nftPos => Object.values((nftPos).underlyingPositions || {})),
+  ]
+
+  return collateralPositions.reduce((acc, collateralPosition) => acc || collateralPosition.configVersion.efficiencyMode.variantId !== '0', false)
 }
 
 const CdpStoreKey = Symbol('CdpStore')

@@ -2,12 +2,13 @@
   import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
   import type Decimal from 'decimal.js'
   import CollateralPositionDisplay from '$lib/components/common/CollateralPositionDisplay.svelte'
-  import CollateralPositionDisplayDetailed from '$lib/components/common/CollateralPositionDisplayDetailed.svelte'
-  import HealthPill from '$lib/components/common/HealthPill.svelte'
-  import { getCdpStore } from '$lib/stores/cdp-store.svelte'
+  import CDPHealthPill from '$lib/components/common/CDPHealthPill.svelte'
+  import { getCdpStore, inEfficiency } from '$lib/stores/cdp-store.svelte'
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec, fValue } from '$lib/utils'
 
   const cdpStore = getCdpStore()
+  const xrdPriceStore = getXRDPriceStore()
 
   // Helper to format LTV ratio
   function formatLtv(ltv: number): string {
@@ -18,11 +19,14 @@
 
   // Helper to calculate health factor color
   function getHealthColor(ltv: number): string {
-    if (ltv <= 0.7)
+    if (ltv <( 0.7 * 1.00))
       return 'text-success'
-    if (ltv <= 0.85)
+    if (ltv < ( 0.9 * 1.00))
       return 'text-warning'
-    return 'text-error'
+    if (ltv < ( 1.0 * 1.00))
+      return 'text-error'
+    else
+      return 'text-error'
   }
 
   // // Helper to format currency values
@@ -35,21 +39,85 @@
   //   }).format(value);
   // }
 
-  // Sort CDPs by health LTV (highest first to show riskiest)
+  // Sort CDPs by health LTV and apply filters
   const sortedCdps = $derived.by(() => {
-    console.log(cdpStore.filteredCdpList)
-
-    // return cdpStore.filteredCdpList
-
     if (!cdpStore.filteredCdpList?.length)
       return []
 
-    return [...cdpStore.filteredCdpList].sort((a, b) => b.liquidationLtv.greaterThan(a.liquidationLtv) ? 1 : -1) // Higher LTV = more risky, show first;
+    let filteredList = [...cdpStore.filteredCdpList]
+
+    // Apply risky CDP filter
+    if (showOnlyRiskyCdps) {
+      filteredList = filteredList.filter(cdp =>
+        cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.00)) && !inEfficiency(cdp)
+      )
+    }
+
+    // Sort by loan resource amount or default LTV sorting
+    if (sortByLoanResource && selectedLoanResource) {
+      return filteredList.sort((a, b) => {
+        const aAmount = dec((a.loanPositions[selectedLoanResource] as any)?.amount || 0)
+        const bAmount = dec((b.loanPositions[selectedLoanResource] as any)?.amount || 0)
+        return bAmount.comparedTo(aAmount) // Highest amount first
+      })
+    } else {
+      // Default sort by liquidation LTV (highest first to show riskiest)
+      return filteredList.sort((a, b) => b.liquidationLtv.greaterThan(a.liquidationLtv) ? 1 : -1)
+    }
   })
 
   // Modal state
   let showCdpModal = $state(false)
-  let selectedCdp = $state<CollateralizeDebtPositionData>(null)
+  let selectedCdp = $state<CollateralizeDebtPositionData|null>(null)
+
+  // Filter state
+  let showOnlyRiskyCdps = $state(true)
+
+  // Sort state
+  let sortByLoanResource = $state(false)
+  let selectedLoanResource = $state('')
+  let showLoanResourceMenu = $state(false)
+
+  // Get selected resource data for display
+  const selectedResourceData = $derived.by(() => {
+    if (!selectedLoanResource) return null
+    return dropdownLoanResources.find(item => item.resourceAddress === selectedLoanResource)
+  })
+
+  // Handle resource selection
+  function selectResource(resourceAddress: string) {
+    selectedLoanResource = resourceAddress
+    showLoanResourceMenu = false
+  }
+
+  // Close menu when clicking outside
+  function handleClickOutside(event: Event) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.dropdown')) {
+      showLoanResourceMenu = false
+    }
+  }
+
+  // Add click outside handler
+  $effect(() => {
+    if (showLoanResourceMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  })
+
+  // Clear selected resource if it's no longer available in filtered set
+  $effect(() => {
+    if (selectedLoanResource && !dropdownLoanResources.some(item => item.resourceAddress === selectedLoanResource)) {
+      selectedLoanResource = ''
+    }
+  })
+
+
+  // Breakdown modal states
+  let showCollateralBreakdown = $state(false)
+  let showDebtBreakdown = $state(false)
+  let showRiskyDebtBreakdown = $state(false)
 
   function showCdpDetails(cdp: any) {
     selectedCdp = cdp
@@ -66,7 +134,7 @@
     const positions = Object.entries(cdp.collateralPositions || {})
     const count = positions.length
     const totalValue = positions.reduce((sum: Decimal, [_, collateral]) => {
-      return sum.add(collateral.value).mul(cdpStore.pythPriceStore.xrdPrice)
+      return sum.add(collateral.value).mul(xrdPriceStore.xrdPrice)
     }, dec(0))
     return { count, totalValue }
   }
@@ -76,7 +144,7 @@
     const nftPositions = Object.values(cdp.nftCollateralPositions || {})
     const wrapperCount: number = nftPositions.length
     const totalValue = nftPositions.reduce((sum: Decimal, nftPos: any): Decimal => {
-      return sum.add((nftPos.value?.value || dec(0)).mul(cdpStore.pythPriceStore.xrdPrice))
+      return sum.add((nftPos.value?.value || dec(0)).mul(xrdPriceStore.xrdPrice))
     }, dec(0))
     return { wrapperCount, totalValue }
   }
@@ -90,7 +158,7 @@
 
   // Convert XRD values to USD
   function convertXrdToUsd(xrdAmount: Decimal): Decimal {
-    return xrdAmount.mul(cdpStore.pythPriceStore.xrdPrice)
+    return xrdAmount.mul(xrdPriceStore.xrdPrice)
   }
 
   const totalCollateralValue = $derived.by(() => {
@@ -107,9 +175,113 @@
 
   const atRiskCdpCount = $derived.by(() => {
     return cdpStore.filteredCdpList.filter((cdp) => {
-      return cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.9))
+      return cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.00)) && !inEfficiency(cdp)
     }).length
   })
+
+  const atRiskLoanAmount = $derived.by(() => {
+    return cdpStore.filteredCdpList.filter((cdp) => {
+      return cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.00)) && !inEfficiency(cdp)
+    }).reduce((sum, cdp) =>
+      sum.add(convertXrdToUsd(cdp.totalLoanValue || dec(0))), dec(0))
+  })
+
+  // Resource breakdown calculations
+  const collateralBreakdown = $derived.by(() => {
+    const breakdown = new Map<string, { amount: Decimal, value: Decimal }>()
+
+    cdpStore.filteredCdpList.forEach(cdp => {
+      // Fungible collateral
+      Object.entries(cdp.collateralPositions || {}).forEach(([resourceAddress, collateral]) => {
+        const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }
+        breakdown.set(resourceAddress, {
+          amount: current.amount.add(collateral.amount || dec(0)),
+          value: current.value.add(convertXrdToUsd(collateral.value || dec(0)))
+        })
+      })
+
+      // NFT collateral underlying positions
+      Object.values(cdp.nftCollateralPositions || {}).forEach((nftPos: any) => {
+        Object.entries(nftPos.underlyingPositions || {}).forEach(([resourceAddress, collateral]) => {
+          const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }
+          breakdown.set(resourceAddress, {
+            amount: current.amount.add((collateral as any).amount || dec(0)),
+            value: current.value.add(convertXrdToUsd((collateral as any).value || dec(0)))
+          })
+        })
+      })
+    })
+
+    return Array.from(breakdown.entries())
+      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
+      .sort((a, b) => b.value.comparedTo(a.value))
+  })
+
+  const debtBreakdown = $derived.by(() => {
+    const breakdown = new Map<string, { amount: Decimal, value: Decimal }>()
+
+    cdpStore.filteredCdpList.forEach(cdp => {
+      Object.entries(cdp.loanPositions || {}).forEach(([resourceAddress, loan]) => {
+        const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }
+        breakdown.set(resourceAddress, {
+          amount: current.amount.add((loan as any).amount || dec(0)),
+          value: current.value.add(convertXrdToUsd((loan as any).value || dec(0)))
+        })
+      })
+    })
+
+    return Array.from(breakdown.entries())
+      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
+      .sort((a, b) => b.value.comparedTo(a.value))
+  })
+
+  // Adaptive loan resources for dropdown (filtered by risky CDPs if enabled)
+  const dropdownLoanResources = $derived.by(() => {
+    const breakdown = new Map<string, { amount: Decimal, value: Decimal }>()
+
+    // Use the same filter logic as sortedCdps
+    let cdpsToAnalyze = [...cdpStore.filteredCdpList]
+    if (showOnlyRiskyCdps) {
+      cdpsToAnalyze = cdpsToAnalyze.filter(cdp =>
+        cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.8)) && !inEfficiency(cdp)
+      )
+    }
+
+    cdpsToAnalyze.forEach(cdp => {
+      Object.entries(cdp.loanPositions || {}).forEach(([resourceAddress, loan]) => {
+        const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }
+        breakdown.set(resourceAddress, {
+          amount: current.amount.add((loan as any).amount || dec(0)),
+          value: current.value.add(convertXrdToUsd((loan as any).value || dec(0)))
+        })
+      })
+    })
+
+    return Array.from(breakdown.entries())
+      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
+      .sort((a, b) => b.value.comparedTo(a.value))
+  })
+
+  const riskyDebtBreakdown = $derived.by(() => {
+    const breakdown = new Map<string, { amount: Decimal, value: Decimal }>()
+
+    cdpStore.filteredCdpList
+      .filter(cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.8)) && !inEfficiency(cdp))
+      .forEach(cdp => {
+        Object.entries(cdp.loanPositions || {}).forEach(([resourceAddress, loan]) => {
+          const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }
+          breakdown.set(resourceAddress, {
+            amount: current.amount.add((loan as any).amount || dec(0)),
+            value: current.value.add(convertXrdToUsd((loan as any).value || dec(0)))
+          })
+        })
+      })
+
+    return Array.from(breakdown.entries())
+      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
+      .sort((a, b) => b.value.comparedTo(a.value))
+  })
+
 
 </script>
 
@@ -135,8 +307,26 @@
 
   <!-- Loading State -->
   {#if cdpStore.loading}
-    <div class='flex justify-center py-12'>
-      <div class='loading loading-spinner loading-lg'></div>
+    <div class='flex flex-col items-center justify-center py-12 space-y-4'>
+      {#if cdpStore.cdpLoadingState}
+        <!-- Circular Progress Indicator with Progress -->
+        {@const progress = cdpStore.cdpLoadingState.total > 0 ? (cdpStore.cdpLoadingState.loaded / cdpStore.cdpLoadingState.total) * 100 : 0}
+        <div class='relative'>
+          <div class='radial-progress text-primary' style='--value:{progress}; --size:6rem; --thickness: 4px;' role='progressbar' aria-valuenow={progress} aria-valuemin='0' aria-valuemax='100'>
+            <span class='text-sm font-medium'>{Math.round(progress)}%</span>
+          </div>
+        </div>
+        <div class='text-center'>
+          <div class='text-base font-medium'>Loading CDPs...</div>
+          <div class='text-sm text-base-content/70'>
+            {cdpStore.cdpLoadingState.loaded} of {cdpStore.cdpLoadingState.total} loaded
+          </div>
+        </div>
+      {:else}
+        <!-- Fallback Spinner -->
+        <div class='loading loading-spinner loading-lg'></div>
+        <div class='text-base font-medium'>Initializing CDP loading...</div>
+      {/if}
     </div>
   {/if}
 
@@ -155,27 +345,130 @@
 
   <!-- CDP Statistics -->
   {#if !cdpStore.loading && sortedCdps.length > 0}
-    <div class='grid grid-cols-1 md:grid-cols-4 gap-4'>
+    <div class='grid grid-cols-1 md:grid-cols-5 gap-4'>
       <div class='stat bg-base-200/60 rounded-lg'>
         <div class='stat-title'>Total CDPs</div>
-        <div class='stat-value text-2xl'>{sortedCdps.length}</div>
+        <div class='stat-value text-xl'>{cdpStore.filteredCdpList.length}</div>
       </div>
-      <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat bg-base-200/60 rounded-lg cursor-pointer hover:bg-base-300/60 transition-colors' onclick={() => showCollateralBreakdown = true} onkeydown={e => (e.key === 'Enter' || e.key === ' ') && (showCollateralBreakdown = true)} tabindex='0' role='button' aria-label='View total collateral breakdown'>
         <div class='stat-title'>Total Collateral</div>
-        <div class='stat-value text-2xl'>
+        <div class='stat-value text-xl'>
           {fValue(totalCollateralValue)}
         </div>
+        <div class='stat-desc text-xs opacity-60'>Click for breakdown</div>
       </div>
-      <div class='stat bg-base-200/60 rounded-lg'>
+      <div class='stat bg-base-200/60 rounded-lg cursor-pointer hover:bg-base-300/60 transition-colors' onclick={() => showDebtBreakdown = true} onkeydown={e => (e.key === 'Enter' || e.key === ' ') && (showDebtBreakdown = true)} tabindex='0' role='button' aria-label='View total debt breakdown'>
         <div class='stat-title'>Total Debt</div>
-        <div class='stat-value text-2xl'>
+        <div class='stat-value text-xl'>
           {fValue(totalDebtValue)}
         </div>
+        <div class='stat-desc text-xs opacity-60'>Click for breakdown</div>
+      </div>   
+         <div class='stat bg-base-200/60 rounded-lg cursor-pointer hover:bg-base-300/60 transition-colors' onclick={() => showRiskyDebtBreakdown = true} onkeydown={e => (e.key === 'Enter' || e.key === ' ') && (showRiskyDebtBreakdown = true)} tabindex='0' role='button' aria-label='View total risky debt breakdown'>
+        <div class='stat-title'>Total Risky  Debt</div>
+        <div class='stat-value text-xl text-warning'>
+          {fValue(atRiskLoanAmount)}
+        </div>
+        <div class='stat-desc text-xs opacity-60'>Click for breakdown</div>
       </div>
       <div class='stat bg-base-200/60 rounded-lg'>
         <div class='stat-title'>At Risk CDPs</div>
         <div class='stat-value text-2xl text-warning'>
           {atRiskCdpCount}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Filter and Sort Controls -->
+  {#if !cdpStore.loading && cdpStore.filteredCdpList.length > 0}
+    <div class='card bg-base-200/60'>
+      <div class='card-body py-4'>
+        <div class='space-y-4'>
+          <h3 class='font-semibold'>Filters & Sort</h3>
+
+          <div class='flex flex-col md:flex-row md:items-center gap-4'>
+            <!-- Risky CDP Toggle -->
+            <div class='form-control'>
+              <label class='label cursor-pointer gap-2'>
+                <span class='label-text text-sm'>Show only risky CDPs</span>
+                <input
+                  type='checkbox'
+                  class='toggle toggle-warning toggle-sm'
+                  bind:checked={showOnlyRiskyCdps}
+                />
+              </label>
+            </div>
+
+            <!-- Sort by Loan Resource Toggle -->
+            <div class='form-control'>
+              <label class='label cursor-pointer gap-2'>
+                <span class='label-text text-sm'>Sort by loan resource</span>
+                <input
+                  type='checkbox'
+                  class='toggle toggle-primary toggle-sm'
+                  bind:checked={sortByLoanResource}
+                  onchange={() => {
+                    if (!sortByLoanResource) {
+                      selectedLoanResource = ''
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            <!-- Loan Resource Dropdown -->
+            {#if sortByLoanResource}
+              <div class='dropdown' class:dropdown-open={showLoanResourceMenu}>
+                <!-- Dropdown Button -->
+                <div
+                  tabindex='0'
+                  role='button'
+                  class='btn btn-outline btn-sm w-full md:min-w-64 justify-start'
+                  onclick={() => showLoanResourceMenu = !showLoanResourceMenu}
+                  onkeydown={e => (e.key === 'Enter' || e.key === ' ') && (showLoanResourceMenu = !showLoanResourceMenu)}
+                >
+                  {#if selectedResourceData}
+                    <CollateralPositionDisplay
+                      resourceAddress={selectedResourceData.resourceAddress}
+                      amount={selectedResourceData.amount}
+                      usdValue={selectedResourceData.value}
+                    />
+                  {:else}
+                    <span class='text-base-content/60'>Select loan resource...</span>
+                  {/if}
+                  <svg class='w-4 h-4 ml-auto' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path>
+                  </svg>
+                </div>
+
+                <!-- Dropdown Menu -->
+                {#if showLoanResourceMenu}
+                  <ul class='dropdown-content menu bg-base-100 rounded-box z-50 w-full md:w-80 p-2 shadow-lg border border-base-300'>
+                    {#each dropdownLoanResources as {resourceAddress, amount, value}}
+                      <li>
+                        <button
+                          class='w-full text-left p-3 hover:bg-base-200 rounded-lg'
+                          onclick={() => selectResource(resourceAddress)}
+                        >
+                          <div class='flex items-center justify-between w-full'>
+                            <CollateralPositionDisplay
+                              {resourceAddress}
+                              {amount}
+                              usdValue={value}
+                            />
+                            <div class='text-xs text-base-content/60 ml-2'>
+                              {((value.div(dropdownLoanResources.reduce((sum, item) => sum.add(item.value), dec(0)))).mul(100)).toFixed(1)}%
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
     </div>
@@ -197,7 +490,7 @@
                 <th class='text-left'>LOAN POSITIONS</th>
                 <th class='text-right'>COLL. VALUE</th>
                 <th class='text-right'>NFT VALUE</th>
-                <th class='text-center'>MANAGE</th>
+                <!-- <th class='text-center'>MANAGE</th> -->
               </tr>
             </thead>
             <tbody>
@@ -219,17 +512,17 @@
 
                   <!-- Total Loan -->
                   <td class='text-right font-medium'>
-                    {fValue(cdp.totalLoanValue.mul(cdpStore.pythPriceStore.xrdPrice))}
+                    {fValue(cdp.totalLoanValue.mul(xrdPriceStore.xrdPrice),{fullPrecision:false})}
                   </td>
 
                   <!-- Total Collateral -->
                   <td class='text-right font-medium'>
-                    {fValue(cdp.totalCollateralValue.mul(cdpStore.pythPriceStore.xrdPrice))}
+                    {fValue(cdp.totalCollateralValue.mul(xrdPriceStore.xrdPrice),{fullPrecision:false})}
                   </td>
 
                   <!-- Health Factor -->
                   <td class='text-center'>
-                    <HealthPill ltv={cdp.liquidationLtv} />
+                    <CDPHealthPill {cdp} />
                   </td>
 
                   <!-- Loan Positions -->
@@ -241,7 +534,7 @@
                           <CollateralPositionDisplay
                             resourceAddress={resourceAddress}
                             amount={dec(loan.amount || 0)}
-                            usdValue={dec((loan.value || dec(0)).mul(cdpStore.pythPriceStore.xrdPrice))}
+                            usdValue={dec((loan.value || dec(0)).mul(xrdPriceStore.xrdPrice))}
                           />
                         {/each}
                         {#if Object.keys(cdp.loanPositions || {}).length > 2}
@@ -260,7 +553,7 @@
                     {#if true}
                       {@const collateralInfo = getFungibleCollateralInfo(cdp)}
                       <div class='flex flex-col'>
-                        <span class='font-medium'>{fValue(collateralInfo.totalValue)}</span>
+                        <span class='font-medium'>{fValue(collateralInfo.totalValue,{fullPrecision:false})}</span>
                         <span class='text-xs text-base-content/60'>{collateralInfo.count} position{collateralInfo.count !== 1 ? 's' : ''}</span>
                       </div>
                     {/if}
@@ -271,14 +564,14 @@
                     {#if true}
                       {@const nftInfo = getNftCollateralInfo(cdp)}
                       <div class='flex flex-col'>
-                        <span class='font-medium'>{fValue(nftInfo.totalValue)}</span>
+                        <span class='font-medium'>{fValue(nftInfo.totalValue,{fullPrecision:false})}</span>
                         <span class='text-xs text-base-content/60'>{nftInfo.wrapperCount} wrapper{nftInfo.wrapperCount !== 1 ? 's' : ''}</span>
                       </div>
                     {/if}
                   </td>
 
                   <!-- Actions -->
-                  <td class='text-center'>
+                  <!-- <td class='text-center'>
                     <a
                       href='/cdp?id={cdp.id}'
                       class='btn btn-xs btn-primary'
@@ -286,7 +579,7 @@
                     >
                       Manage
                     </a>
-                  </td>
+                  </td> -->
                 </tr>
               {/each}
             </tbody>
@@ -322,11 +615,11 @@
           <div class='grid grid-cols-2 gap-4'>
             <div class='stat bg-base-200/60 rounded-lg p-3'>
               <div class='stat-title text-xs'>Total Loan</div>
-              <div class='stat-value text-lg'>{fValue(selectedCdp.totalLoanValue.mul(cdpStore.pythPriceStore.xrdPrice))}</div>
+              <div class='stat-value text-lg'>{fValue(selectedCdp.totalLoanValue.mul(xrdPriceStore.xrdPrice))}</div>
             </div>
             <div class='stat bg-base-200/60 rounded-lg p-3'>
               <div class='stat-title text-xs'>Total Collateral</div>
-              <div class='stat-value text-lg'>{fValue(selectedCdp.totalCollateralValue.mul(cdpStore.pythPriceStore.xrdPrice))}</div>
+              <div class='stat-value text-lg'>{fValue(selectedCdp.totalCollateralValue.mul(xrdPriceStore.xrdPrice))}</div>
             </div>
             <div class='stat bg-base-200/60 rounded-lg p-3'>
               <div class='stat-title text-xs'>Liquidation LTV</div>
@@ -337,7 +630,7 @@
             <div class='stat bg-base-200/60 rounded-lg p-3'>
               <div class='stat-title text-xs'>Health Factor</div>
               <div class='stat-value text-lg'>
-                <HealthPill ltv={selectedCdp.liquidationLtv} />
+                <CDPHealthPill cdp={selectedCdp} />
               </div>
             </div>
           </div>
@@ -350,10 +643,10 @@
             {#if Object.keys(selectedCdp.loanPositions || {}).length > 0}
               {#each Object.entries(selectedCdp.loanPositions || {}) as [resourceAddress, loan]}
                 <div class='p-3 bg-base-200/60 rounded-lg'>
-                  <CollateralPositionDisplayDetailed
+                  <CollateralPositionDisplay
                     resourceAddress={resourceAddress}
                     amount={dec((loan as any).amount || 0)}
-                    usdValue={dec(((loan as any).value || dec(0)).mul(cdpStore.pythPriceStore.xrdPrice))}
+                    usdValue={dec(((loan as any).value || dec(0)).mul(xrdPriceStore.xrdPrice))}
                   />
                 </div>
               {/each}
@@ -370,10 +663,10 @@
             {#if Object.keys(selectedCdp.collateralPositions || {}).length > 0}
               {#each Object.entries(selectedCdp.collateralPositions || {}) as [resourceAddress, collateral]}
                 <div class='p-3 bg-base-200/60 rounded-lg'>
-                  <CollateralPositionDisplayDetailed
+                  <CollateralPositionDisplay
                     resourceAddress={resourceAddress}
                     amount={dec((collateral as any).amount || 0)}
-                    usdValue={dec(((collateral as any).value || dec(0)).mul(cdpStore.pythPriceStore.xrdPrice))}
+                    usdValue={dec(((collateral as any).value || dec(0)).mul(xrdPriceStore.xrdPrice))}
                   />
                 </div>
               {/each}
@@ -386,17 +679,29 @@
         <!-- NFT Collateral Positions -->
         <div class='space-y-4'>
           <h4 class='font-semibold text-base border-b pb-2'>NFT Collateral</h4>
-          <div class='space-y-2 max-h-64 overflow-y-auto'>
+          <div class='space-y-3 max-h-64 overflow-y-auto'>
             {#if Object.keys(selectedCdp.nftCollateralPositions || {}).length > 0}
-              {@const nftUnderlyingCollateral = Object.values(selectedCdp.nftCollateralPositions || {})
-                .flatMap((nftPos: any) => Object.entries((nftPos as any).underlyingPositions || {}))}
-              {#each nftUnderlyingCollateral as [resourceAddress, collateral]}
-                <div class='p-3 bg-base-200/60 rounded-lg'>
-                  <CollateralPositionDisplayDetailed
-                    resourceAddress={resourceAddress}
-                    amount={dec((collateral as any).amount || 0)}
-                    usdValue={dec(((collateral as any).value || dec(0)).mul(cdpStore.pythPriceStore.xrdPrice))}
-                  />
+              {#each Object.entries(selectedCdp.nftCollateralPositions || {}) as [wrapperId, nftPos]}
+                <div class='border border-base-300 rounded-lg p-3 bg-base-100/50'>
+                  <!-- Wrapper ID Header -->
+                  <div class='mb-3'>
+                    <div class='font-mono text-sm font-medium text-primary'>
+                      ID: {wrapperId.slice(-7, -1)}
+                    </div>
+                  </div>
+
+                  <!-- Underlying Positions -->
+                  <div class='space-y-2'>
+                    {#each Object.entries((nftPos as any).underlyingPositions || {}) as [resourceAddress, collateral]}
+                      <div class='p-2 bg-base-200/40 rounded'>
+                        <CollateralPositionDisplay
+                          resourceAddress={resourceAddress}
+                          amount={dec((collateral as any).amount || 0)}
+                          usdValue={dec(((collateral as any).value || dec(0)).mul(xrdPriceStore.xrdPrice))}
+                        />
+                      </div>
+                    {/each}
+                  </div>
                 </div>
               {/each}
             {:else}
@@ -407,8 +712,131 @@
       </div>
 
       <div class='modal-action'>
-        <a href='/cdp?id={selectedCdp.id}' class='btn btn-primary'>Manage CDP</a>
+        <!-- <a href='/cdp?id={selectedCdp.id}' class='btn btn-primary'>Manage CDP</a> -->
         <button class='btn' onclick={closeCdpModal}>Close</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Collateral Breakdown Modal -->
+{#if showCollateralBreakdown}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class='modal modal-open' role='dialog' tabindex='-1' onclick={() => showCollateralBreakdown = false} onkeydown={e => e.key === 'Escape' && (showCollateralBreakdown = false)}>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class='modal-box max-w-2xl' role='document' onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()}>
+      <div class='flex justify-between items-center mb-4'>
+        <h3 class='font-bold text-lg'>Total Collateral Breakdown</h3>
+        <button class='btn btn-sm btn-circle btn-ghost' onclick={() => showCollateralBreakdown = false}>✕</button>
+      </div>
+
+      <div class='space-y-3 max-h-96 overflow-y-auto'>
+        {#each collateralBreakdown as {resourceAddress, amount, value}}
+          <div class='flex items-center justify-between p-3 bg-base-200/60 rounded-lg'>
+            <div class='flex-1'>
+              <CollateralPositionDisplay
+                {resourceAddress}
+                {amount}
+                usdValue={value}
+              />
+            </div>
+            <div class='text-right'>
+              <div class='font-medium'>{fValue(value)}</div>
+              <div class='text-xs opacity-60'>{((value.div(totalCollateralValue)).mul(100)).toFixed(1)}%</div>
+            </div>
+          </div>
+        {/each}
+        {#if collateralBreakdown.length === 0}
+          <div class='text-center py-8 text-base-content/60'>No collateral data available</div>
+        {/if}
+      </div>
+
+      <div class='modal-action'>
+        <button class='btn' onclick={() => showCollateralBreakdown = false}>Close</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Debt Breakdown Modal -->
+{#if showDebtBreakdown}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class='modal modal-open' role='dialog' tabindex='-1' onclick={() => showDebtBreakdown = false} onkeydown={e => e.key === 'Escape' && (showDebtBreakdown = false)}>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class='modal-box max-w-2xl' role='document' onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()}>
+      <div class='flex justify-between items-center mb-4'>
+        <h3 class='font-bold text-lg'>Total Debt Breakdown</h3>
+        <button class='btn btn-sm btn-circle btn-ghost' onclick={() => showDebtBreakdown = false}>✕</button>
+      </div>
+
+      <div class='space-y-3 max-h-96 overflow-y-auto'>
+        {#each debtBreakdown as {resourceAddress, amount, value}}
+          <div class='flex items-center justify-between p-3 bg-base-200/60 rounded-lg'>
+            <div class='flex-1'>
+              <CollateralPositionDisplay
+                {resourceAddress}
+                {amount}
+                usdValue={value}
+              />
+            </div>
+            <div class='text-right'>
+              <div class='font-medium'>{fValue(value)}</div>
+              <div class='text-xs opacity-60'>{((value.div(totalDebtValue)).mul(100)).toFixed(1)}%</div>
+            </div>
+          </div>
+        {/each}
+        {#if debtBreakdown.length === 0}
+          <div class='text-center py-8 text-base-content/60'>No debt data available</div>
+        {/if}
+      </div>
+
+      <div class='modal-action'>
+        <button class='btn' onclick={() => showDebtBreakdown = false}>Close</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Risky Debt Breakdown Modal -->
+{#if showRiskyDebtBreakdown}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class='modal modal-open' role='dialog' tabindex='-1' onclick={() => showRiskyDebtBreakdown = false} onkeydown={e => e.key === 'Escape' && (showRiskyDebtBreakdown = false)}>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class='modal-box max-w-2xl' role='document' onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()}>
+      <div class='flex justify-between items-center mb-4'>
+        <h3 class='font-bold text-lg'>Total Risky Debt Breakdown</h3>
+        <button class='btn btn-sm btn-circle btn-ghost' onclick={() => showRiskyDebtBreakdown = false}>✕</button>
+      </div>
+
+      <div class='space-y-3 max-h-96 overflow-y-auto'>
+        {#each riskyDebtBreakdown as {resourceAddress, amount, value}}
+          <div class='flex items-center justify-between p-3 bg-base-200/60 rounded-lg'>
+            <div class='flex-1'>
+              <CollateralPositionDisplay
+                {resourceAddress}
+                {amount}
+                usdValue={value}
+              />
+            </div>
+            <div class='text-right'>
+              <div class='font-medium text-warning'>{fValue(value)}</div>
+              <div class='text-xs opacity-60'>{((value.div(atRiskLoanAmount)).mul(100)).toFixed(1)}%</div>
+            </div>
+          </div>
+        {/each}
+        {#if riskyDebtBreakdown.length === 0}
+          <div class='text-center py-8 text-base-content/60'>No risky debt data available</div>
+        {/if}
+      </div>
+
+      <div class='modal-action'>
+        <button class='btn' onclick={() => showRiskyDebtBreakdown = false}>Close</button>
       </div>
     </div>
   </div>

@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
 }
 
@@ -27,6 +29,9 @@ html {
 }
 
 /* Smoother theme transitions */
-body, [data-theme] {
-  transition: background-color 200ms ease, color 200ms ease;
+body,
+[data-theme] {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
