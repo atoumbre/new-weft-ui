@@ -129,7 +129,7 @@
                     </div>
                   </div> -->
 
-        <AssetCard symbol={collateral.asset} iconUrl={collateral.logo} previousPriceUsd={collateral.previousPriceInUSD} priceUsd={collateral.priceUsd}></AssetCard>
+        <AssetCard symbol={collateral.asset} iconUrl={collateral.logo} previousPriceUsd={collateral.previousPriceInUSD} priceUsd={collateral.priceUsd} resourceAddress={collateral.id}></AssetCard>
                 </td>
                 <td><span class='font-medium'>{fPercent(collateral.ltv)}</span></td>
                 <td><span class='font-medium'>{fPercent(collateral.liquidationLtv)}</span></td>

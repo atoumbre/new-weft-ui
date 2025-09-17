@@ -5,10 +5,12 @@
   import CDPHealthPill from '$lib/components/common/CDPHealthPill.svelte'
   import { getCdpStore, inEfficiency } from '$lib/stores/cdp-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { dec, fValue } from '$lib/utils'
 
   const cdpStore = getCdpStore()
   const xrdPriceStore = getXRDPriceStore()
+  const marketInfoStore = getMarketInfoStore()
 
   // Helper to format LTV ratio
   function formatLtv(ltv: number): string {
@@ -27,6 +29,43 @@
       return 'text-error'
     else
       return 'text-error'
+  }
+
+  // Helper to get resource symbol for sorting
+  function getResourceSymbol(resourceAddress: string): string {
+    // First try collateralResources
+    const collateralResource = marketInfoStore.collateralResources.find(res => res.resourceAddress === resourceAddress)
+    if (collateralResource) {
+      return collateralResource.resourceDetails?.$metadata?.symbol
+        || collateralResource.resourceDetails?.$metadata?.name
+        || resourceAddress.slice(-4)
+    }
+
+    // Then try loanResources
+    const loanResource = marketInfoStore.loanResources.find(res => res.resourceAddress === resourceAddress)
+    if (loanResource) {
+      return loanResource.resourceDetails?.$metadata?.symbol
+        || loanResource.resourceDetails?.$metadata?.name
+        || resourceAddress.slice(-4)
+    }
+
+    // Try loan resources by deposit unit address
+    const duLoanResource = marketInfoStore.loanResources.find(res => res.lendingPoolState?.depositUnitAddress === resourceAddress)
+    if (duLoanResource) {
+      return duLoanResource.resourceDetails?.$metadata?.symbol
+        || duLoanResource.resourceDetails?.$metadata?.name
+        || resourceAddress.slice(-4)
+    }
+
+    // Finally try lsuAmounts
+    const lsuResource = marketInfoStore.lsuAmounts.find(res => res.resourceAddress === resourceAddress)
+    if (lsuResource) {
+      return lsuResource.resourceDetails?.$metadata?.symbol
+        || lsuResource.resourceDetails?.$metadata?.name
+        || resourceAddress.slice(-4)
+    }
+
+    return resourceAddress.slice(-4)
   }
 
   // // Helper to format currency values
@@ -93,7 +132,7 @@
   // Close menu when clicking outside
   function handleClickOutside(event: Event) {
     const target = event.target as HTMLElement
-    if (!target.closest('.dropdown')) {
+    if (!target.closest('.loan-resource-dropdown')) {
       showLoanResourceMenu = false
     }
   }
@@ -282,6 +321,10 @@
       .sort((a, b) => b.value.comparedTo(a.value))
   })
 
+  const dropdownLoanResourcesTotalValue = $derived.by(() =>
+    dropdownLoanResources.reduce((sum, item) => sum.add(item.value), dec(0)),
+  )
+
 
 </script>
 
@@ -419,52 +462,70 @@
 
             <!-- Loan Resource Dropdown -->
             {#if sortByLoanResource}
-              <div class='dropdown' class:dropdown-open={showLoanResourceMenu}>
+              <div class='relative w-full md:w-64 loan-resource-dropdown'>
                 <!-- Dropdown Button -->
-                <div
-                  tabindex='0'
-                  role='button'
-                  class='btn btn-outline btn-sm w-full md:min-w-64 justify-start'
+                <button
+                  type='button'
+                  class='btn btn-outline btn-sm w-full justify-between items-center'
+                  aria-haspopup='listbox'
+                  aria-expanded={showLoanResourceMenu}
                   onclick={() => showLoanResourceMenu = !showLoanResourceMenu}
-                  onkeydown={e => (e.key === 'Enter' || e.key === ' ') && (showLoanResourceMenu = !showLoanResourceMenu)}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      showLoanResourceMenu = !showLoanResourceMenu
+                    }
+                    if (e.key === 'Escape') {
+                      showLoanResourceMenu = false
+                    }
+                  }}
                 >
-                  {#if selectedResourceData}
-                    <CollateralPositionDisplay
-                      resourceAddress={selectedResourceData.resourceAddress}
-                      amount={selectedResourceData.amount}
-                      usdValue={selectedResourceData.value}
-                    />
-                  {:else}
-                    <span class='text-base-content/60'>Select loan resource...</span>
-                  {/if}
-                  <svg class='w-4 h-4 ml-auto' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <div class='flex-1 min-w-0'>
+                    {#if selectedResourceData}
+                      <CollateralPositionDisplay
+                        resourceAddress={selectedResourceData.resourceAddress}
+                        amount={selectedResourceData.amount}
+                        usdValue={selectedResourceData.value}
+                      />
+                    {:else}
+                      <span class='text-base-content/60 text-sm'>Select loan resource...</span>
+                    {/if}
+                  </div>
+                  <svg class='w-4 h-4 flex-shrink-0 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path>
                   </svg>
-                </div>
+                </button>
 
                 <!-- Dropdown Menu -->
                 {#if showLoanResourceMenu}
-                  <ul class='dropdown-content menu bg-base-100 rounded-box z-50 w-full md:w-80 p-2 shadow-lg border border-base-300'>
-                    {#each dropdownLoanResources as {resourceAddress, amount, value}}
-                      <li>
-                        <button
-                          class='w-full text-left p-3 hover:bg-base-200 rounded-lg'
-                          onclick={() => selectResource(resourceAddress)}
-                        >
-                          <div class='flex items-center justify-between w-full'>
-                            <CollateralPositionDisplay
-                              {resourceAddress}
-                              {amount}
-                              usdValue={value}
-                            />
-                            <div class='text-xs text-base-content/60 ml-2'>
-                              {((value.div(dropdownLoanResources.reduce((sum, item) => sum.add(item.value), dec(0)))).mul(100)).toFixed(1)}%
+                  <div class='absolute inset-x-0 mt-2 z-[100] md:left-0 md:w-fit w-full min-w-64 max-w-sm rounded-box border border-base-300 bg-base-100 shadow-xl'>
+                    <div class='p-2'>
+                      {#each dropdownLoanResources as { resourceAddress, amount, value }}
+                        <div class='w-full mb-1'>
+                          <button
+                            type='button'
+                            class='w-full text-left p-3 hover:bg-base-200 rounded-lg transition-colors'
+                            onclick={() => selectResource(resourceAddress)}
+                          >
+                            <div class='w-full'>
+                              <CollateralPositionDisplay
+                                {resourceAddress}
+                                {amount}
+                                usdValue={value}
+                              />
+                              <div class='text-xs text-base-content/60 text-right mt-1'>
+                                {#if dropdownLoanResourcesTotalValue.isZero()}
+                                  0%
+                                {:else}
+                                  {(value.div(dropdownLoanResourcesTotalValue).mul(100)).toFixed(1)}%
+                                {/if}
+                              </div>
                             </div>
-                          </div>
-                        </button>
-                      </li>
-                    {/each}
-                  </ul>
+                          </button>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
                 {/if}
               </div>
             {/if}

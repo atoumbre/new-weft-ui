@@ -155,7 +155,7 @@
     }
     // include available collaterals as options too
     for (const a of availableCollaterals) map.set(a.asset, { symbol: a.asset, logo: a.logo })
-    return Array.from(map.values())
+    return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol))
   })
   const debtAssets = $derived.by(() => {
     const map = new Map<string, { symbol: string, logo: string }>()
@@ -164,7 +164,7 @@
     }
     // include available loan resources as options too
     for (const lr of availableLoanResources) map.set(lr.asset, { symbol: lr.asset, logo: lr.logo })
-    return Array.from(map.values())
+    return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol))
   })
   const prices = $derived.by(() => {
     const p: Record<string, number> = {}

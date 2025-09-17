@@ -110,7 +110,7 @@ const symbol = loanResource?.resourceDetails?.$metadata?.symbol
             {#each marketPools as pool}
               <tr>
                 <td>
-                  <AssetCard symbol={pool.asset} iconUrl={pool.logo} previousPriceUsd={pool.previousPriceInUSD} priceUsd={pool.priceUsd}></AssetCard>
+                  <AssetCard symbol={pool.asset} iconUrl={pool.logo} previousPriceUsd={pool.previousPriceInUSD} priceUsd={pool.priceUsd} resourceAddress={pool.id}></AssetCard>
                 </td>
                 <td><span class='font-medium text-success'>{fPercent(pool.supplyApr)}</span></td>
                 <td><span class='font-medium text-warning'>{fPercent(pool.borrowApr)}</span></td>
