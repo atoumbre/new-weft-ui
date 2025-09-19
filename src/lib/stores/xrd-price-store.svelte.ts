@@ -1,11 +1,11 @@
 import type Decimal from 'decimal.js'
 import { dec } from '$lib/utils'
 import { HermesClient } from '@pythnetwork/hermes-client'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 const priceIds = [
-  '0x816c6604beb161d3ad9c3b584f06c682e6299516165d756a68c7660b073b7072', // BTC/USD price id
+  '0x816c6604beb161d3ad9c3b584f06c682e6299516165d756a68c7660b073b7072',
 ]
 
 export class XRDPriceStore extends BaseStore {
@@ -27,12 +27,16 @@ export class XRDPriceStore extends BaseStore {
       cacheTTL: 5 * 60 * 1000, // 5 minutes
     })
 
-    this.updaterTimer = setInterval(
+    const updaterTimer = setInterval(
       () => {
         void this.updatePrice()
       },
       15 * 60 * 1000,
     )
+
+    onDestroy(() => {
+      clearInterval(updaterTimer)
+    })
   }
 
   async updatePrice() {
@@ -63,11 +67,6 @@ export class XRDPriceStore extends BaseStore {
       },
       'updatePrice',
     )
-  }
-
-  onDestroy() {
-    if (this.updaterTimer)
-      clearInterval(this.updaterTimer)
   }
 }
 

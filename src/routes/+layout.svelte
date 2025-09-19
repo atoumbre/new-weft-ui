@@ -1,14 +1,11 @@
 <script lang='ts'>
-  import RadixConnectButton from '$lib/components/common/RadixConnectButton.svelte'
-  import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
-  import { setCdpStore } from '$lib/stores/cdp-store.svelte'
-  import { setMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { setPriceStore } from '$lib/stores/price-store.svelte'
-  import { setXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { setRadixToolkitStore } from '$lib/stores/rdt.svelte'
-  import { GatewayApiClient } from '@radixdlt/babylon-gateway-api-sdk'
-  import { onDestroy, onMount } from 'svelte'
-  import '../app.css'
+  import { setCdpStore } from '$lib/stores/cdp-store.svelte';
+  import { setMarketInfoStore } from '$lib/stores/market-info.svelte';
+  import { setPriceStore } from '$lib/stores/price-store.svelte';
+  import { setRadixToolkitStore } from '$lib/stores/rdt.svelte';
+  import { setXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
+  import {  onMount } from 'svelte';
+  import '../app.css';
 
 
   const { children } = $props()
@@ -23,10 +20,11 @@
 
   // Set up stores synchronously
   setRadixToolkitStore()
-  const resourceStore = setPriceStore()
+  const priceStore = setPriceStore()
   const xrdPriceStore = setXRDPriceStore()
   const marketInfoStore = setMarketInfoStore()
   const cdpStore = setCdpStore()
+  const rdtStore = setRadixToolkitStore()
 
 
   onMount(async () => {
@@ -34,19 +32,11 @@
     if (saved && (themes as readonly string[]).includes(saved))
       theme = saved as Theme
 
+      rdtStore.init()
       xrdPriceStore.updatePrice()
-      marketInfoStore.loadMarketInfo().then(() => {
-      cdpStore.loadCdpData()
-      resourceStore.loadPrices(marketInfoStore.allResourceAddresses)
-    })
+
   })
 
-  onDestroy(() => {
-    resourceStore.onDestroy?.()
-    xrdPriceStore.onDestroy?.()
-    marketInfoStore.onDestroy?.()
-    cdpStore.onDestroy?.()
-  })
 
   $effect(() => {
     if (typeof localStorage !== 'undefined')
@@ -76,8 +66,8 @@
         <div class='navbar-center'>
           <div class='hidden md:flex'>
             <ul class='menu menu-horizontal px-1 gap-1'>
-              <li><a href='/' class='btn btn-sm btn-ghost'>Market</a></li>
-              <li><a href='/explore' class='btn btn-sm btn-ghost'>CDP Explorer</a></li>
+              <li><a href='/markets' class='btn btn-sm btn-ghost'>Market</a></li>
+              <li><a href='/cdp-explorer' class='btn btn-sm btn-ghost'>CDP Explorer</a></li>
               <!-- <li><a href='/lending' class='btn btn-sm btn-ghost'>Lending</a></li>
               <li><a href='/cdp' class='btn btn-sm btn-ghost'>Manage CDPs</a></li> -->
             </ul>
@@ -92,8 +82,8 @@
               </svg>
             </button>
             <ul class='menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow'>
-              <li><a href='/'>Market</a></li>
-              <li><a href='/explore'>CDP Explorer</a></li>
+              <li><a href='/markets'>Market</a></li>
+              <li><a href='/cdp-explorer'>CDP Explorer</a></li>
               <!-- <li><a href='/lending'>Lending</a></li>
               <li><a href='/cdp'>Manage CDPs</a></li> -->
             </ul>

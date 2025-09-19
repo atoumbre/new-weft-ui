@@ -20,7 +20,7 @@
 </script>
 
 <div class='leading-tight text-right'>
-  <div class='font-medium tabular-nums'>{fAmount(amount)}</div>
+  <div class='font-medium tabular-nums'>{fAmount(amount, { fullPrecision: true })}</div>
   {#if usdDec !== undefined}
     <div class='text-xs opacity-70 tabular-nums'>{fValue(usdDec)}</div>
   {/if}

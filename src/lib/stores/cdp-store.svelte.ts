@@ -1,6 +1,6 @@
 import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 export class CdpStore extends BaseStore {
@@ -21,13 +21,22 @@ export class CdpStore extends BaseStore {
     })
 
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
+
     // Auto-refresh CDP data every 5 minutes
-    this.updaterTimer = setInterval(
+    const updaterTimer = setInterval(
       () => {
         this.loadCdpData()
       },
       15 * 60 * 1000,
     )
+
+    onDestroy(() => {
+      clearInterval(updaterTimer)
+    })
+  }
+
+  async retry() {
+    await this.loadCdpData()
   }
 
   async loadCdpData() {
@@ -62,22 +71,12 @@ export class CdpStore extends BaseStore {
     }
   }
 
-  async retry() {
-    await this.loadCdpData()
-  }
-
   // Filter to show only CDPs with loan positions
   private filterActiveCdps() {
     this.filteredCdpList = this.cdpList.filter((cdp) => {
       const hasLoans = Object.keys(cdp.loanPositions || {}).length > 0
       return hasLoans
     })
-  }
-
-  onDestroy() {
-    if (this.updaterTimer) {
-      clearInterval(this.updaterTimer)
-    }
   }
 }
 

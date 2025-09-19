@@ -8,9 +8,10 @@
     resourceAddress: string
     amount: Decimal
     usdValue: Decimal
+    fullPrecision?: boolean
   }
 
-  const { resourceAddress, amount, usdValue }: Props = $props()
+  const { resourceAddress, amount, usdValue , fullPrecision = false}: Props = $props()
 
   const marketInfoStore = getMarketInfoStore()
 
@@ -89,8 +90,8 @@
 
   <!-- Amount, Symbol, and USD Value -->
   <span class='truncate'>
-    <span class='font-medium'>{fAmount(amount,false)}</span>
+    <span class='font-medium'>{fAmount(amount, { fullPrecision })}</span>
     <span class='opacity-70 ml-1'>{symbol}</span>
-    <span class='opacity-60 ml-1'>({fValue(usdValue,{fullPrecision:false})})</span>
+    <span class='opacity-60 ml-1'>({fValue(usdValue,{fullPrecision: false})})</span>
   </span>
 </div>

@@ -4,14 +4,14 @@ import { DataRequestBuilder, RadixDappToolkit, RadixNetwork } from '@radixdlt/ra
 import { getContext, onDestroy, setContext } from 'svelte'
 
 export class RadixToolkitStore {
-  rdt: RadixDappToolkit
-  gatewayApi: GatewayApiClient
+  innerRDT?: RadixDappToolkit
+  innerGatewayApi?: GatewayApiClient
   walletData = $state<WalletDataState | undefined>()
   walletConnected = $derived(!!this.walletData?.accounts[0])
   selectedAccount = $state('')
 
-  constructor() {
-    this.rdt = RadixDappToolkit({
+  init() {
+    this.innerRDT = RadixDappToolkit({
       networkId: RadixNetwork.Mainnet,
       applicationVersion: '1.0.0',
       applicationName: 'Hello Token dApp',
@@ -19,13 +19,13 @@ export class RadixToolkitStore {
     })
 
     // Initialize the Gateway API for network queries
-    this.gatewayApi = GatewayApiClient.initialize(this.rdt.gatewayApi.clientConfig)
+    this.innerGatewayApi = GatewayApiClient.initialize(this.innerRDT.gatewayApi.clientConfig)
 
     // Fetch the user's account address(es) from the wallet
-    this.rdt?.walletApi.setRequestData(DataRequestBuilder.accounts().atLeast(1))
+    this.innerRDT?.walletApi.setRequestData(DataRequestBuilder.accounts().atLeast(1))
 
     // Subscribe to updates to the user's shared wallet data and store it in the walletData store
-    const subs = this.rdt?.walletApi.walletData$.subscribe((data) => {
+    const subs = this.innerRDT?.walletApi.walletData$.subscribe((data) => {
       // $effect(() => {
       //   $inspect('walletConnected: ', this.walletConnected)
       // })
@@ -40,6 +40,20 @@ export class RadixToolkitStore {
     onDestroy(() => {
       subs.unsubscribe()
     })
+  }
+
+  get rdt(): RadixDappToolkit {
+    if (!this.innerRDT)
+      throw new Error('RDT not initialized')
+
+    return this.innerRDT
+  }
+
+  get gatewayApi(): GatewayApiClient {
+    if (!this.innerGatewayApi)
+      throw new Error('RDT not initialized')
+
+    return this.innerGatewayApi
   }
 }
 

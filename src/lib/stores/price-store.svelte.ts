@@ -1,8 +1,7 @@
 import type { LedgerStateSelector } from '@radixdlt/babylon-gateway-api-sdk'
-
 import type Decimal from 'decimal.js'
 import { dec, WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 interface Prices {
@@ -40,11 +39,11 @@ export class PriceStore extends BaseStore {
       },
       15 * 60 * 1000,
     )
-  }
 
-  onDestroy() {
-    if (this.updaterTimer)
-      clearInterval(this.updaterTimer)
+    onDestroy(() => {
+      if (this.updaterTimer)
+        clearInterval(this.updaterTimer)
+    })
   }
 
   async loadPrices(addresses: string[] = []) {

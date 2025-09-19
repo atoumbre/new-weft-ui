@@ -1,6 +1,5 @@
 <script lang='ts'>
-  import AssetCard from './common/AssetCard.svelte';
-
+  import AssetCard from '$lib/components/common/AssetCard.svelte';
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
   import UtilizationBar from '$lib/components/common/UtilizationBar.svelte';
   import type { LoanResource } from '$lib/internal_modules/dist';

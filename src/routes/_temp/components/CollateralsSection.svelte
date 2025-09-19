@@ -1,12 +1,12 @@
 <script lang='ts'>
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
+  import AssetCard from '$lib/components/common/AssetCard.svelte';
   import type { CollateralResource } from '$lib/internal_modules/dist';
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
   import { getPriceStore } from '$lib/stores/price-store.svelte';
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
   import { fPercent } from '$lib/utils';
   import type Decimal from 'decimal.js';
-  import AssetCard from './common/AssetCard.svelte';
-  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
 
   type AvailableCollateral = {
     id: string

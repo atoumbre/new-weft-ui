@@ -1,7 +1,7 @@
 import type { CollateralResource, FungibleResourceState, GlobalCollateralService, LoanResource, LoanService, MarketConfig, MarketProtocolFeeConfig, MarketService, OperatingStatusValue } from '$lib/internal_modules/dist'
 import type Decimal from 'decimal.js'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 export class MarketInfoStore extends BaseStore {
@@ -29,7 +29,6 @@ export class MarketInfoStore extends BaseStore {
   })
 
   weftStateApi: WeftLedgerSateFetcher
-  updaterTimer: number | undefined
 
   constructor() {
     super({
@@ -42,12 +41,18 @@ export class MarketInfoStore extends BaseStore {
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
 
     // Auto-refresh market info every 5 minutes
-    this.updaterTimer = setInterval(
+    const updaterTimer = setInterval(
       () => {
         this.loadMarketInfo()
       },
       5 * 60 * 1000,
     )
+
+    onDestroy(() => {
+      if (updaterTimer) {
+        clearInterval(updaterTimer)
+      }
+    })
   }
 
   async loadMarketInfo() {
@@ -97,12 +102,6 @@ export class MarketInfoStore extends BaseStore {
 
   getCollateralResource(resourceAddress: string): CollateralResource | undefined {
     return this.collateralResourcesByAddress[resourceAddress]
-  }
-
-  onDestroy() {
-    if (this.updaterTimer) {
-      clearInterval(this.updaterTimer)
-    }
   }
 }
 
