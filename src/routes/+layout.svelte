@@ -1,5 +1,8 @@
 <script lang='ts'>
   import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
+  import { setCdpStore } from '$lib/stores/cdp-store.svelte'
+  import { setMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { setPriceStore } from '$lib/stores/price-store.svelte'
   import { setRadixToolkitStore } from '$lib/stores/rdt.svelte'
   import { setXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { GatewayApiClient } from '@radixdlt/babylon-gateway-api-sdk'
@@ -23,9 +26,12 @@
 
   WeftLedgerSateFetcher.setInstance(gatewayApiClient)
 
-  setRadixToolkitStore()
   const xrdPriceStore = setXRDPriceStore()
   const rdtStore = setRadixToolkitStore()
+  setCdpStore()
+  setPriceStore()
+  setMarketInfoStore()
+  setRadixToolkitStore()
 
   onMount(async () => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null

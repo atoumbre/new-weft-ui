@@ -96,7 +96,6 @@
                 symbol={position.asset}
                 price={position.price}
                 change={position.change24h}
-                isPositive={position.isPositive}
               />
             {/snippet}
             {#snippet right()}

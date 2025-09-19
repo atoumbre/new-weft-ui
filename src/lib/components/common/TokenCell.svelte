@@ -6,9 +6,8 @@
     symbol?: string
     price?: string
     change?: string | number
-    isPositive?: boolean
   }
-  const { logo = '', symbol = '', price, change, isPositive = true }: Props = $props()
+  const { logo = '', symbol = '', price, change }: Props = $props()
 </script>
 
 <div class='flex items-center gap-4'>
@@ -27,7 +26,7 @@
       <div class='flex items-center gap-2 text-sm opacity-70'>
         <span>{price}</span>
         {#if change !== undefined}
-          <PriceChange value={change} {isPositive} />
+          <PriceChange value={change} />
         {/if}
       </div>
     {/if}

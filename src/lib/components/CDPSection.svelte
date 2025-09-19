@@ -549,7 +549,6 @@
                         symbol={collateral.asset}
                         price={collateral.price}
                         change={collateral.change24h}
-                        isPositive={collateral.isPositive}
                       />
                     {/snippet}
                     {#snippet right()}
@@ -705,7 +704,6 @@
                       symbol={loan.asset}
                       price={loan.price}
                       change={loan.change24h}
-                      isPositive={loan.isPositive}
                     />
                   {/snippet}
                   {#snippet right()}

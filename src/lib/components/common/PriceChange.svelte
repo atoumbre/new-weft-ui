@@ -1,6 +1,9 @@
-<!-- <script lang='ts'>
-  export let value: string | number // value without %
-  export let isPositive: boolean = true
+<script lang='ts'>
+  import { dec } from '$lib/utils'
+
+  const { value } = $props()
+
+  const isPositive = $derived(dec(value).isPositive())
 </script>
 
 <div
@@ -38,4 +41,4 @@
     >
   {/if}
   <span>{value}%</span>
-</div> -->
+</div>
