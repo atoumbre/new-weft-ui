@@ -5,23 +5,23 @@
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
   import { onMount } from 'svelte'
   import CollateralsSection from './components/CollateralsSection.svelte'
   import LendingPoolsSection from './components/LendingPoolsSection.svelte'
+  import LSUSection from './components/LSUSection.svelte'
   import MarketsHeader from './components/MarketsHeader.svelte'
   import MarketsStats from './components/MarketsStats.svelte'
 
   type LendingTotals = {
     totalSupplied: Decimal
     totalBorrowed: Decimal
-    totalLiquidity: Decimal
   }
 
   type CollateralTotals = {
     totalDepositUSD: Decimal
     totalDepositUnderDUUSD: Decimal
-    total: Decimal
+    totalDepositUnderLSU: Decimal
   }
 
   const marketInfoStore = getMarketInfoStore()
@@ -36,36 +36,13 @@
     }
   })
 
-  let activeTab = $state<'lending' | 'collaterals'>('lending')
+  let activeTab = $state<'lending' | 'collaterals' | 'lsu'>('lending')
 
-  const enhanceBreakdown = (map: Map<string, { amount: Decimal, value: Decimal }>) =>
-    Array.from(map.entries())
-      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
-      .sort((a, b) => b.value.comparedTo(a.value))
-
-  const addToBreakdown = (
-    map: Map<string, { amount: Decimal, value: Decimal }>,
-    resourceAddress: string,
-    amount: Decimal,
-    value: Decimal,
-  ) => {
-    const current = map.get(resourceAddress) || { amount: dec(0), value: dec(0) }
-    map.set(resourceAddress, {
-      amount: current.amount.add(amount),
-      value: current.value.add(value),
-    })
-  }
-
-  const lendingSummary = $derived.by(() => {
+  const lendingTotals = $derived.by(() => {
     const totals: LendingTotals = {
       totalSupplied: dec(0),
       totalBorrowed: dec(0),
-      totalLiquidity: dec(0),
     }
-
-    const suppliedBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
-    const borrowedBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
-    const liquidityBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
 
     marketInfoStore.loanResources.forEach((loanResource) => {
       const { current: priceInXRD } = priceStore.getPrice(loanResource.resourceAddress)
@@ -77,51 +54,20 @@
 
       const suppliedUSD = pool.totalDeposit.mul(priceInUSD)
       const borrowedUSD = pool.totalLoan.mul(priceInUSD)
-      const liquidityAmount = pool.totalDeposit.sub(pool.totalLoan)
-      const liquidityUSD = liquidityAmount.mul(priceInUSD)
 
       totals.totalSupplied = totals.totalSupplied.add(suppliedUSD)
       totals.totalBorrowed = totals.totalBorrowed.add(borrowedUSD)
-      totals.totalLiquidity = totals.totalLiquidity.add(liquidityUSD)
-
-      addToBreakdown(
-        suppliedBreakdownMap,
-        loanResource.resourceAddress,
-        pool.totalDeposit,
-        suppliedUSD,
-      )
-      addToBreakdown(
-        borrowedBreakdownMap,
-        loanResource.resourceAddress,
-        pool.totalLoan,
-        borrowedUSD,
-      )
-      addToBreakdown(
-        liquidityBreakdownMap,
-        loanResource.resourceAddress,
-        liquidityAmount,
-        liquidityUSD,
-      )
     })
 
-    return {
-      totals,
-      supplied: enhanceBreakdown(suppliedBreakdownMap),
-      borrowed: enhanceBreakdown(borrowedBreakdownMap),
-      liquidity: enhanceBreakdown(liquidityBreakdownMap),
-    }
+    return totals
   })
 
-  const lendingTotals = $derived(lendingSummary.totals)
-
-  const collateralSummary = $derived.by(() => {
+  const collateralTotals = $derived.by(() => {
     const totals: CollateralTotals = {
       totalDepositUSD: dec(0),
       totalDepositUnderDUUSD: dec(0),
-      total: dec(0),
+      totalDepositUnderLSU: dec(0),
     }
-
-    const breakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
 
     marketInfoStore.collateralResources.forEach((collateralResource) => {
       const { current: priceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
@@ -129,16 +75,9 @@
 
       const depositValue = collateralResource.totalDeposit.mul(priceInUSD)
       const underDuValue = collateralResource.totalDepositUnderDU.mul(priceInUSD)
-      const totalAmount = collateralResource.totalDeposit.add(
-        collateralResource.totalDepositUnderDU,
-      )
-      const totalValue = depositValue.add(underDuValue)
 
       totals.totalDepositUSD = totals.totalDepositUSD.add(depositValue)
       totals.totalDepositUnderDUUSD = totals.totalDepositUnderDUUSD.add(underDuValue)
-      totals.total = totals.total.add(totalValue)
-
-      addToBreakdown(breakdownMap, collateralResource.resourceAddress, totalAmount, totalValue)
     })
 
     marketInfoStore.lsuAmounts.forEach((lsuData) => {
@@ -150,27 +89,19 @@
       const unitRedemptionValue = dec(unitRedemptionValueAmount)
       const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
 
-      const value = lsuData.amount.mul(priceInUSD)
+      const underLsuValue = lsuData.amount.mul(priceInUSD)
 
-      totals.total = totals.total.add(value)
-
-      addToBreakdown(breakdownMap, lsuData.resourceAddress, lsuData.amount, value)
+      totals.totalDepositUnderLSU = totals.totalDepositUnderLSU.add(underLsuValue)
     })
 
-    return {
-      totals,
-      breakdown: enhanceBreakdown(breakdownMap),
-    }
+    return totals
   })
 
-  const collateralTotals = $derived(collateralSummary.totals)
-
-  const totalCollateralValue = $derived(collateralTotals.total)
-
   function refreshMarkets() {
-    marketInfoStore.loadMarketInfo()
-    void priceStore.loadPrices(marketInfoStore.allResourceAddresses)
-    void xrdPriceStore.updatePrice()
+    xrdPriceStore.updatePrice()
+    marketInfoStore.loadMarketInfo().then(() => {
+      priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+    })
   }
 </script>
 
@@ -184,16 +115,18 @@
   <MarketsStats
     totalSupplied={lendingTotals.totalSupplied}
     totalBorrowed={lendingTotals.totalBorrowed}
-    totalLiquidity={lendingTotals.totalLiquidity}
-    totalCollateral={totalCollateralValue}
+    totalLiquidity={lendingTotals.totalSupplied.sub(lendingTotals.totalBorrowed)}
+    totalCollateral={collateralTotals.totalDepositUSD.add(collateralTotals.totalDepositUnderLSU)}
+    totalLentCollateral={collateralTotals.totalDepositUnderDUUSD}
   />
 
   <!-- Tab Navigation -->
   <div class='card bg-base-200/60'>
     <div class='card-body py-4'>
       <Tabs>
-        <Tab id='lending' bind:activeId={activeTab} label='Available Lending Pools' />
-        <Tab id='collaterals' bind:activeId={activeTab} label='Available Collaterals' />
+        <Tab id='lending' bind:activeId={activeTab} label='Lending Pools' />
+        <Tab id='collaterals' bind:activeId={activeTab} label='Collaterals' />
+        <Tab id='lsu' bind:activeId={activeTab} label='LSU Collaterals' />
       </Tabs>
     </div>
   </div>
@@ -203,5 +136,7 @@
     <LendingPoolsSection />
   {:else if activeTab === 'collaterals'}
     <CollateralsSection />
+  {:else if activeTab === 'lsu'}
+    <LSUSection />
   {/if}
 </div>

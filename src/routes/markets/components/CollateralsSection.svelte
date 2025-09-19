@@ -6,7 +6,7 @@
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { fPercent } from '$lib/utils'
+  import { fPercent } from '$lib/utils/common'
 
   type AvailableCollateral = {
     id: string
@@ -84,7 +84,7 @@
 <div class='card bg-base-200/60'>
   <div class='card-body'>
     <div class='flex items-center justify-between gap-3'>
-      <h2 class='card-title'>Available Collaterals</h2>
+      <h2 class='card-title'>Collaterals</h2>
     </div>
     <div class='mt-2 overflow-x-auto'>
       <table class='table table-sm'>

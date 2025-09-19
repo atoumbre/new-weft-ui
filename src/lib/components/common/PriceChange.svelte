@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
 
   const { value } = $props()
 

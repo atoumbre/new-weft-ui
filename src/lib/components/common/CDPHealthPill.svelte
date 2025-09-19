@@ -1,7 +1,7 @@
 <script lang='ts'>
   import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
-  import { resolveCdpHealthDefinition } from '$lib/cdp/health'
   import { inEfficiency } from '$lib/stores/cdp-store.svelte'
+  import { resolveCdpHealthDefinition } from '$lib/utils/health'
 
   type Props = { cdp?: CollateralizeDebtPositionData, showValue?: boolean }
   const { cdp, showValue = false }: Props = $props()

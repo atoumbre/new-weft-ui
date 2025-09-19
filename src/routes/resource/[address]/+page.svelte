@@ -6,7 +6,7 @@
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { dec, fPercent, fValue } from '$lib/utils'
+  import { dec, fPercent, fValue } from '$lib/utils/common'
 
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()

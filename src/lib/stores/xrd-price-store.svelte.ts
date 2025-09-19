@@ -1,5 +1,5 @@
 import type Decimal from 'decimal.js'
-import { dec } from '$lib/utils'
+import { dec } from '$lib/utils/common'
 import { HermesClient } from '@pythnetwork/hermes-client'
 import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'

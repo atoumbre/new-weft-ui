@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import { fValue } from '$lib/utils'
+  import { fValue } from '$lib/utils/common'
 
   const {
     totalCollateralValue,

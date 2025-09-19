@@ -1,9 +1,9 @@
-import { dec } from '$lib/utils'
+import { dec } from '$lib/utils/common'
 import Decimal from 'decimal.js'
 
-type Decimalish = Decimal | number | null | undefined
+type DecimalIsh = Decimal | number | null | undefined
 
-export type CdpHealthLevelId = 'healthy' | 'monitor' | 'critical' | 'liquidation'
+export type CdpHealthLevelId = 'healthy' | 'moderate' | 'critical' | 'liquidation'
 
 export interface CdpHealthDefinition {
   id: CdpHealthLevelId
@@ -35,8 +35,8 @@ export const CDP_HEALTH_DEFINITIONS: CdpHealthDefinition[] = [
     maxExclusive: dec(1),
   },
   {
-    id: 'monitor',
-    label: 'Monitor (70% - 90% LTV)',
+    id: 'moderate',
+    label: 'Moderate (70% - 90% LTV)',
     shortLabel: 'Moderate',
     textClass: 'text-[#f59e0b]',
     badgeClass: 'bg-[#fde68a] text-[#92400e] border-transparent',
@@ -53,13 +53,13 @@ export const CDP_HEALTH_DEFINITIONS: CdpHealthDefinition[] = [
   },
 ]
 
-function toDecimal(value: Decimalish): Decimal {
+function toDecimal(value: DecimalIsh): Decimal {
   if (value === null || value === undefined)
     return dec(0)
   return value instanceof Decimal ? value : dec(value)
 }
 
-export function resolveCdpHealthDefinition(ltv: Decimalish): CdpHealthDefinition {
+export function resolveCdpHealthDefinition(ltv: DecimalIsh): CdpHealthDefinition {
   const value = toDecimal(ltv)
 
   const match = CDP_HEALTH_DEFINITIONS.find(({ minInclusive, maxExclusive }) => {
@@ -71,16 +71,16 @@ export function resolveCdpHealthDefinition(ltv: Decimalish): CdpHealthDefinition
   return match ?? CDP_HEALTH_DEFINITIONS[CDP_HEALTH_DEFINITIONS.length - 1]
 }
 
-export function getCdpHealthTextClass(ltv: Decimalish): string {
+export function getCdpHealthTextClass(ltv: DecimalIsh): string {
   return resolveCdpHealthDefinition(ltv).textClass
 }
 
-export function getCdpHealthBadgeClass(ltv: Decimalish): string {
+export function getCdpHealthBadgeClass(ltv: DecimalIsh): string {
   return resolveCdpHealthDefinition(ltv).badgeClass
 }
 
-export function getCdpHealthShortLabel(ltv: Decimalish): string {
+export function getCdpHealthShortLabel(ltv: DecimalIsh): string {
   return resolveCdpHealthDefinition(ltv).shortLabel
 }
 
-export const getCdpHealthLabel = (ltv: Decimalish): string => resolveCdpHealthDefinition(ltv).label
+export const getCdpHealthLabel = (ltv: DecimalIsh): string => resolveCdpHealthDefinition(ltv).label

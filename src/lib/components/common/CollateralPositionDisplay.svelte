@@ -2,7 +2,7 @@
   import type { CollateralResource, LoanResource } from '$lib/internal_modules/dist'
   import type Decimal from 'decimal.js'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { fAmount, fValue } from '$lib/utils'
+  import { fAmount, fValue } from '$lib/utils/common'
 
   interface Props {
     resourceAddress: string

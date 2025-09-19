@@ -1,7 +1,7 @@
 <script lang='ts'>
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import HealthPill from '$lib/components/common/HealthPill.svelte'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
   import { createEventDispatcher } from 'svelte'
 
   type ActionType = 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay'

@@ -6,7 +6,7 @@
   import Tabs from '$lib/components/common/Tabs.svelte'
   import TokenCell from '$lib/components/common/TokenCell.svelte'
   import CDPForm from '$lib/components/forms/CDPForm.svelte'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
 
   type Collateral = {
     asset: string

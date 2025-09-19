@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import { dec, fPercent, fValue } from '$lib/utils'
+  import { dec, fPercent, fValue } from '$lib/utils/common'
 
   interface Props {
     symbol: string

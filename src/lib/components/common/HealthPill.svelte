@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
 
   type Props = { ltv?: Decimal, showValue?: boolean }
   const { ltv = dec(0), showValue = false }: Props = $props()

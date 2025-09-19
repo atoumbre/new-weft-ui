@@ -7,7 +7,7 @@
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { fPercent } from '$lib/utils'
+  import { fPercent } from '$lib/utils/common'
 
   type MarketPool = {
     id: string
@@ -76,7 +76,7 @@
 <div class='card bg-base-200/60'>
   <div class='card-body'>
     <div class='mb-4 flex flex-wrap items-center justify-between gap-4'>
-      <h2 class='card-title'>Available Lending Pools</h2>
+      <h2 class='card-title'>Lending Pools</h2>
     </div>
 
     <div class='mt-2 overflow-x-auto'>

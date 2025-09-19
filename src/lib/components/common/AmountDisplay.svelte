@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import { fAmount, fValue } from '$lib/utils'
+  import { fAmount, fValue } from '$lib/utils/common'
 
   type Props = {
     amount: Decimal

@@ -4,7 +4,7 @@
   import type Decimal from 'decimal.js'
   import CDPHealthPill from '$lib/components/common/CDPHealthPill.svelte'
   import CollateralPositionDisplay from '$lib/components/common/CollateralPositionDisplay.svelte'
-  import { dec, fValue } from '$lib/utils'
+  import { dec, fValue } from '$lib/utils/common'
 
   const {
     cdps = [],

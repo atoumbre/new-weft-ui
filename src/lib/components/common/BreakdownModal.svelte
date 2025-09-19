@@ -1,7 +1,7 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { dec, fAmount, fValue } from '$lib/utils'
+  import { dec, fAmount, fValue } from '$lib/utils/common'
 
   type BreakdownItem = {
     resourceAddress: string

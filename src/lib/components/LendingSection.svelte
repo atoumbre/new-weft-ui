@@ -4,7 +4,7 @@
   import ListRow from '$lib/components/common/ListRow.svelte'
   import TokenCell from '$lib/components/common/TokenCell.svelte'
   import LendingForm from '$lib/components/forms/LendingForm.svelte'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
 
   type LendingPosition = {
     id: string

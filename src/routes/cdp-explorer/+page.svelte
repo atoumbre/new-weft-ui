@@ -1,16 +1,16 @@
 <script lang='ts'>
   import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
   import type Decimal from 'decimal.js'
-  import {
-    CDP_HEALTH_DEFINITIONS,
-    getCdpHealthTextClass,
-    resolveCdpHealthDefinition,
-  } from '$lib/cdp/health'
   import { getCdpStore, inEfficiency } from '$lib/stores/cdp-store.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { dec } from '$lib/utils'
+  import { dec } from '$lib/utils/common'
+  import {
+    CDP_HEALTH_DEFINITIONS,
+    getCdpHealthTextClass,
+    resolveCdpHealthDefinition,
+  } from '$lib/utils/health'
   import { onMount } from 'svelte'
   import BreakdownModal from '../../lib/components/common/BreakdownModal.svelte'
   import CdpBreakdownModal from './components/CdpBreakdownModal.svelte'
@@ -352,7 +352,7 @@
           {#if loadingState && loadingState.total > 0}
             <span class='text-sm font-medium'>{Math.round(progress)}%</span>
           {:else}
-            <span class='text-sm font-medium'>0%</span>
+            <span class='text-sm font-medium'><span class='loading loading-ring loading-md'></span></span>
           {/if}
         </div>
       </div>
