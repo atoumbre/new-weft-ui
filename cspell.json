@@ -9,6 +9,7 @@
     "Cdps",
     "Collateralized",
     "cryptolend",
+    "Dedup",
     "DUUSD",
     "KOUASSI",
     "nftw",
@@ -16,6 +17,7 @@
     "pythnetwork",
     "radixdlt",
     "retryable",
+    "squircle",
     "underlyings",
     "Vite"
   ],

@@ -8,6 +8,10 @@ const config = {
       '$lib': 'src/lib',
       '$lib/*': 'src/lib/*',
     },
+    prerender: {
+      handleMissingId: 'warn',
+      handleUnseenRoutes: 'ignore',
+    },
   },
 }
 

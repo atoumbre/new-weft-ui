@@ -1,7 +1,9 @@
 <script lang='ts'>
   type Props = { status?: 'healthy' | 'warning' | 'error' | string }
   const { status = 'healthy' }: Props = $props()
-  const klass = $derived(status === 'healthy' ? 'badge-success' : status === 'warning' ? 'badge-warning' : 'badge-error')
+  const klass = $derived(
+    status === 'healthy' ? 'badge-success' : status === 'warning' ? 'badge-warning' : 'badge-error',
+  )
 </script>
 
 <div class={`badge ${klass}`}>

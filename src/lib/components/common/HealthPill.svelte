@@ -14,7 +14,6 @@
       return { color: 'badge-warning', label: 'Moderate' }
     return { color: 'badge-error', label: 'At Risk' }
   })
-
 </script>
 
 <div class={`badge ${color} gap-1`}>{label}{showValue ? ` · ${ltv.toFixed(2)}` : ''}</div>

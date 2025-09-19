@@ -13,8 +13,10 @@
 
 <div class='flex items-center gap-4'>
   {#if logo}
-    <div class='avatar placeholder'>
-      <div class='w-8 h-8 rounded-full bg-base-200 ring ring-base-100 ring-offset-1 text-base flex items-center justify-center'>
+    <div class='placeholder avatar'>
+      <div
+        class='flex h-8 w-8 items-center justify-center rounded-full bg-base-200 text-base ring ring-base-100 ring-offset-1'
+      >
         {logo}
       </div>
     </div>
@@ -22,7 +24,7 @@
   <div>
     <div class='font-medium'>{symbol}</div>
     {#if price}
-      <div class='text-sm opacity-70 flex items-center gap-2'>
+      <div class='flex items-center gap-2 text-sm opacity-70'>
         <span>{price}</span>
         {#if change !== undefined}
           <PriceChange value={change} {isPositive} />

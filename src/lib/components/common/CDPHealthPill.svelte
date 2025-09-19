@@ -1,26 +1,23 @@
 <script lang='ts'>
-  import { resolveCdpHealthDefinition } from '$lib/cdp/health';
-  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist';
-  import { inEfficiency } from '$lib/stores/cdp-store.svelte';
+  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
+  import { resolveCdpHealthDefinition } from '$lib/cdp/health'
+  import { inEfficiency } from '$lib/stores/cdp-store.svelte'
 
-  type Props = { cdp?: CollateralizeDebtPositionData; showValue?: boolean }
+  type Props = { cdp?: CollateralizeDebtPositionData, showValue?: boolean }
   const { cdp, showValue = false }: Props = $props()
 
   const { color, label } = $derived.by(() => {
     if (inEfficiency(cdp))
       return { color: 'badge-alt', label: 'Efficiency ⚡️' }
 
-
     const label = resolveCdpHealthDefinition(cdp?.liquidationLtv)
 
     return {
       color: label.badgeClass,
-      label: label.shortLabel
+      label: label.shortLabel,
     }
   })
-
 </script>
-
 
 <div class={`badge ${color} gap-1`}>
   {label}{showValue ? ` · ${cdp?.liquidationLtv.toFixed(2)}` : ''}

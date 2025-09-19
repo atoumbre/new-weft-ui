@@ -13,8 +13,10 @@
 </script>
 
 <div class='space-y-1' aria-label={`Utilization ${pctStr}%`}>
-  <div class='flex items-center justify-between text-xs opacity-70'><span class='tabular-nums'>{pctStr}%</span></div>
-  <div class='w-full h-2 rounded bg-base-300 overflow-hidden'>
+  <div class='flex items-center justify-between text-xs opacity-70'>
+    <span class='tabular-nums'>{pctStr}%</span>
+  </div>
+  <div class='h-2 w-full overflow-hidden rounded bg-base-300'>
     <div class='h-2 bg-primary' style={`width: ${pctStr}%`}></div>
   </div>
 </div>

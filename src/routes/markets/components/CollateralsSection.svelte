@@ -1,12 +1,12 @@
 <script lang='ts'>
-  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte';
-  import AssetCard from '$lib/components/common/AssetCard.svelte';
-  import type { CollateralResource } from '$lib/internal_modules/dist';
-  import { getMarketInfoStore } from '$lib/stores/market-info.svelte';
-  import { getPriceStore } from '$lib/stores/price-store.svelte';
-  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte';
-  import { fPercent } from '$lib/utils';
-  import type Decimal from 'decimal.js';
+  import type { CollateralResource } from '$lib/internal_modules/dist'
+  import type Decimal from 'decimal.js'
+  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
+  import AssetCard from '$lib/components/common/AssetCard.svelte'
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getPriceStore } from '$lib/stores/price-store.svelte'
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
+  import { fPercent } from '$lib/utils'
 
   type AvailableCollateral = {
     id: string
@@ -31,14 +31,17 @@
   const xrdPriceStore = getXRDPriceStore()
 
   function transformCollateralData(collateralResource: CollateralResource): AvailableCollateral {
-    const {current:priceInXRD,previous:previousPriceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
+    const { current: priceInXRD, previous: previousPriceInXRD } = priceStore.getPrice(
+      collateralResource.resourceAddress,
+    )
     const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
     const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
-    
+
     // Get token symbol from resource info or default
-    const symbol = collateralResource?.resourceDetails?.$metadata?.symbol
-      || collateralResource?.resourceDetails?.$metadata?.name
-      || collateralResource.resourceAddress.slice(-4)
+    const symbol
+      = collateralResource?.resourceDetails?.$metadata?.symbol
+        || collateralResource?.resourceDetails?.$metadata?.name
+        || collateralResource.resourceAddress.slice(-4)
 
     const iconUrl = collateralResource?.resourceDetails?.$metadata?.iconUrl
 
@@ -53,7 +56,7 @@
       id: collateralResource.resourceAddress,
       asset: symbol,
       priceUsd: priceInUSD,
-      previousPriceInUSD: previousPriceInUSD,
+      previousPriceInUSD,
       isPositive: true,
       ltv: riskConfig.loanToValueRatio,
       liquidationLtv: riskConfig.loanToValueRatio.add(riskConfig.liquidationThresholdSpread),
@@ -83,14 +86,22 @@
     <div class='flex items-center justify-between gap-3'>
       <h2 class='card-title'>Available Collaterals</h2>
     </div>
-    <div class='overflow-x-auto mt-2'>
+    <div class='mt-2 overflow-x-auto'>
       <table class='table table-sm'>
-        <thead class='bg-base-300/30 backdrop-blur sticky top-0'>
+        <thead class='sticky top-0 bg-base-300/30 backdrop-blur'>
           <tr>
             <th>Asset</th>
             <th><div class='tooltip' data-tip='Max allowed borrow ratio'>LTV</div></th>
-            <th><div class='tooltip' data-tip='Ratio at which liquidation occurs'>Liquidation LTV</div></th>
-            <th><div class='tooltip' data-tip='Discount applied during liquidation'>Liquidation Penalty</div></th>
+            <th
+            ><div class='tooltip' data-tip='Ratio at which liquidation occurs'>
+              Liquidation LTV
+            </div></th
+            >
+            <th
+            ><div class='tooltip' data-tip='Discount applied during liquidation'>
+              Liquidation Penalty
+            </div></th
+            >
             <th>Supplied</th>
             <th>Supplied and Lent</th>
             <th>Actions</th>
@@ -99,35 +110,45 @@
         <tbody>
           {#if marketInfoStore.loading}
             <tr>
-              <td colspan='7' class='text-center py-8'>
-                <span class='loading loading-spinner loading-md'></span>
+              <td colspan='7' class='py-8 text-center'>
+                <span class='loading loading-md loading-spinner'></span>
                 <span class='ml-2 opacity-70'>Loading collaterals...</span>
               </td>
             </tr>
           {:else if availableCollaterals.length === 0}
             <tr>
-              <td colspan='7' class='text-center opacity-70 py-8'>No collaterals available</td>
+              <td colspan='7' class='py-8 text-center opacity-70'>No collaterals available</td>
             </tr>
           {:else}
             {#each availableCollaterals as collateral}
               <tr>
                 <td>
-
-
-        <AssetCard symbol={collateral.asset} iconUrl={collateral.logo} previousPriceUsd={collateral.previousPriceInUSD} priceUsd={collateral.priceUsd} resourceAddress={collateral.id}></AssetCard>
+                  <AssetCard
+                    symbol={collateral.asset}
+                    iconUrl={collateral.logo}
+                    previousPriceUsd={collateral.previousPriceInUSD}
+                    priceUsd={collateral.priceUsd}
+                    resourceAddress={collateral.id}
+                  ></AssetCard>
                 </td>
                 <td><span class='font-medium'>{fPercent(collateral.ltv)}</span></td>
                 <td><span class='font-medium'>{fPercent(collateral.liquidationLtv)}</span></td>
                 <td><span class='font-medium'>{fPercent(collateral.liquidationPenalty)}</span></td>
                 <td class='text-sm'>
-                  <AmountDisplay amount={collateral.totalSuppliedDirect} usd={collateral.totalSuppliedDirectUsd} />
+                  <AmountDisplay
+                    amount={collateral.totalSuppliedDirect}
+                    usd={collateral.totalSuppliedDirectUsd}
+                  />
                 </td>
                 <td class='text-sm'>
-                  <AmountDisplay amount={collateral.totalSuppliedWrapped} usd={collateral.totalSuppliedWrappedUsd} />
+                  <AmountDisplay
+                    amount={collateral.totalSuppliedWrapped}
+                    usd={collateral.totalSuppliedWrappedUsd}
+                  />
                 </td>
                 <td>
                   <div class='flex gap-2'>
-                    <button class='btn btn-sm btn-outline'>Supply</button>
+                    <button class='btn btn-outline btn-sm'>Supply</button>
                   </div>
                 </td>
               </tr>

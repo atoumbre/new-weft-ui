@@ -1,17 +1,16 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import CollateralsSection from './components/CollateralsSection.svelte'
-  import LendingPoolsSection from './components/LendingPoolsSection.svelte'
   import Tab from '$lib/components/common/Tab.svelte'
   import Tabs from '$lib/components/common/Tabs.svelte'
-  import MarketsHeader from './components/MarketsHeader.svelte'
-  import MarketsStats from './components/MarketsStats.svelte'
-  import BreakdownModal from '../../lib/components/common/BreakdownModal.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec } from '$lib/utils'
-  import { onMount } from 'svelte';
+  import { onMount } from 'svelte'
+  import CollateralsSection from './components/CollateralsSection.svelte'
+  import LendingPoolsSection from './components/LendingPoolsSection.svelte'
+  import MarketsHeader from './components/MarketsHeader.svelte'
+  import MarketsStats from './components/MarketsStats.svelte'
 
   type LendingTotals = {
     totalSupplied: Decimal
@@ -29,28 +28,23 @@
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
 
-  onMount(()=>{
-    if (marketInfoStore.status==='not loaded')   {
+  onMount(() => {
+    if (marketInfoStore.status === 'not loaded') {
       marketInfoStore.loadMarketInfo().then(() => {
         priceStore.loadPrices(marketInfoStore.allResourceAddresses)
       })
     }
   })
-  
-
 
   let activeTab = $state<'lending' | 'collaterals'>('lending')
-  let showSuppliedBreakdown = $state(false)
-  let showBorrowedBreakdown = $state(false)
-  let showLiquidityBreakdown = $state(false)
-  let showCollateralBreakdownModal = $state(false)
 
-  const enhanceBreakdown = (map: Map<string, { amount: Decimal; value: Decimal }>) =>
-    Array.from(map.entries()).map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
+  const enhanceBreakdown = (map: Map<string, { amount: Decimal, value: Decimal }>) =>
+    Array.from(map.entries())
+      .map(([resourceAddress, data]) => ({ resourceAddress, ...data }))
       .sort((a, b) => b.value.comparedTo(a.value))
 
   const addToBreakdown = (
-    map: Map<string, { amount: Decimal; value: Decimal }>,
+    map: Map<string, { amount: Decimal, value: Decimal }>,
     resourceAddress: string,
     amount: Decimal,
     value: Decimal,
@@ -69,9 +63,9 @@
       totalLiquidity: dec(0),
     }
 
-    const suppliedBreakdownMap = new Map<string, { amount: Decimal; value: Decimal }>()
-    const borrowedBreakdownMap = new Map<string, { amount: Decimal; value: Decimal }>()
-    const liquidityBreakdownMap = new Map<string, { amount: Decimal; value: Decimal }>()
+    const suppliedBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
+    const borrowedBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
+    const liquidityBreakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
 
     marketInfoStore.loanResources.forEach((loanResource) => {
       const { current: priceInXRD } = priceStore.getPrice(loanResource.resourceAddress)
@@ -90,9 +84,24 @@
       totals.totalBorrowed = totals.totalBorrowed.add(borrowedUSD)
       totals.totalLiquidity = totals.totalLiquidity.add(liquidityUSD)
 
-      addToBreakdown(suppliedBreakdownMap, loanResource.resourceAddress, pool.totalDeposit, suppliedUSD)
-      addToBreakdown(borrowedBreakdownMap, loanResource.resourceAddress, pool.totalLoan, borrowedUSD)
-      addToBreakdown(liquidityBreakdownMap, loanResource.resourceAddress, liquidityAmount, liquidityUSD)
+      addToBreakdown(
+        suppliedBreakdownMap,
+        loanResource.resourceAddress,
+        pool.totalDeposit,
+        suppliedUSD,
+      )
+      addToBreakdown(
+        borrowedBreakdownMap,
+        loanResource.resourceAddress,
+        pool.totalLoan,
+        borrowedUSD,
+      )
+      addToBreakdown(
+        liquidityBreakdownMap,
+        loanResource.resourceAddress,
+        liquidityAmount,
+        liquidityUSD,
+      )
     })
 
     return {
@@ -104,9 +113,6 @@
   })
 
   const lendingTotals = $derived(lendingSummary.totals)
-  const suppliedBreakdown = $derived(lendingSummary.supplied)
-  const borrowedBreakdown = $derived(lendingSummary.borrowed)
-  const liquidityBreakdown = $derived(lendingSummary.liquidity)
 
   const collateralSummary = $derived.by(() => {
     const totals: CollateralTotals = {
@@ -115,7 +121,7 @@
       total: dec(0),
     }
 
-    const breakdownMap = new Map<string, { amount: Decimal; value: Decimal }>()
+    const breakdownMap = new Map<string, { amount: Decimal, value: Decimal }>()
 
     marketInfoStore.collateralResources.forEach((collateralResource) => {
       const { current: priceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
@@ -123,7 +129,9 @@
 
       const depositValue = collateralResource.totalDeposit.mul(priceInUSD)
       const underDuValue = collateralResource.totalDepositUnderDU.mul(priceInUSD)
-      const totalAmount = collateralResource.totalDeposit.add(collateralResource.totalDepositUnderDU)
+      const totalAmount = collateralResource.totalDeposit.add(
+        collateralResource.totalDepositUnderDU,
+      )
       const totalValue = depositValue.add(underDuValue)
 
       totals.totalDepositUSD = totals.totalDepositUSD.add(depositValue)
@@ -133,11 +141,12 @@
       addToBreakdown(breakdownMap, collateralResource.resourceAddress, totalAmount, totalValue)
     })
 
-    marketInfoStore.lsuAmounts.forEach(lsuData => {
+    marketInfoStore.lsuAmounts.forEach((lsuData) => {
       const nativeDetails = lsuData.resourceDetails?.$details.native_resource_details as any
-      const unitRedemptionValueAmount = nativeDetails?.kind === 'ValidatorLiquidStakeUnit'
-        ? nativeDetails.unit_redemption_value?.[0]?.amount ?? 0
-        : 0
+      const unitRedemptionValueAmount
+        = nativeDetails?.kind === 'ValidatorLiquidStakeUnit'
+          ? (nativeDetails.unit_redemption_value?.[0]?.amount ?? 0)
+          : 0
       const unitRedemptionValue = dec(unitRedemptionValueAmount)
       const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
 
@@ -155,7 +164,6 @@
   })
 
   const collateralTotals = $derived(collateralSummary.totals)
-  const collateralBreakdown = $derived(collateralSummary.breakdown)
 
   const totalCollateralValue = $derived(collateralTotals.total)
 
@@ -164,14 +172,13 @@
     void priceStore.loadPrices(marketInfoStore.allResourceAddresses)
     void xrdPriceStore.updatePrice()
   }
-
 </script>
 
 <svelte:head>
   <title>Markets - Weft</title>
 </svelte:head>
 
-<div class='container mx-auto px-4 py-8 space-y-6'>
+<div class='container mx-auto space-y-6 px-4 py-8'>
   <MarketsHeader onRefresh={refreshMarkets} />
 
   <MarketsStats
@@ -179,10 +186,6 @@
     totalBorrowed={lendingTotals.totalBorrowed}
     totalLiquidity={lendingTotals.totalLiquidity}
     totalCollateral={totalCollateralValue}
-    onShowSuppliedBreakdown={() => showSuppliedBreakdown = true}
-    onShowBorrowedBreakdown={() => showBorrowedBreakdown = true}
-    onShowLiquidityBreakdown={() => showLiquidityBreakdown = true}
-    onShowCollateralBreakdown={() => showCollateralBreakdownModal = true}
   />
 
   <!-- Tab Navigation -->
@@ -202,28 +205,3 @@
     <CollateralsSection />
   {/if}
 </div>
-
-<BreakdownModal
-  title='Total Supplied Breakdown'
-  open={showSuppliedBreakdown}
-  items={suppliedBreakdown}
-  onClose={() => showSuppliedBreakdown = false}
-/>
-<BreakdownModal
-  title='Total Borrowed Breakdown'
-  open={showBorrowedBreakdown}
-  items={borrowedBreakdown}
-  onClose={() => showBorrowedBreakdown = false}
-/>
-<BreakdownModal
-  title='Available Liquidity Breakdown'
-  open={showLiquidityBreakdown}
-  items={liquidityBreakdown}
-  onClose={() => showLiquidityBreakdown = false}
-/>
-<BreakdownModal
-  title='Total Collateral Breakdown'
-  open={showCollateralBreakdownModal}
-  items={collateralBreakdown}
-  onClose={() => showCollateralBreakdownModal = false}
-/>

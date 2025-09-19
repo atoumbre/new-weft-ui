@@ -19,9 +19,9 @@
   })
 </script>
 
-<div class='leading-tight text-right'>
+<div class='text-right leading-tight'>
   <div class='font-medium tabular-nums'>{fAmount(amount, { fullPrecision: true })}</div>
   {#if usdDec !== undefined}
-    <div class='text-xs opacity-70 tabular-nums'>{fValue(usdDec)}</div>
+    <div class='text-xs tabular-nums opacity-70'>{fValue(usdDec)}</div>
   {/if}
 </div>

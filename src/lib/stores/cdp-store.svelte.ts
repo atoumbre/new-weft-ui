@@ -86,10 +86,16 @@ export function inEfficiency(cdp?: CollateralizeDebtPositionData): boolean {
 
   const collateralPositions = [
     ...Object.values(cdp?.collateralPositions || []),
-    ...Object.values(cdp?.nftCollateralPositions || {}).flatMap(nftPos => Object.values((nftPos).underlyingPositions || {})),
+    ...Object.values(cdp?.nftCollateralPositions || {}).flatMap(nftPos =>
+      Object.values(nftPos.underlyingPositions || {}),
+    ),
   ]
 
-  return collateralPositions.reduce((acc, collateralPosition) => acc || collateralPosition.configVersion.efficiencyMode.variantId !== '0', false)
+  return collateralPositions.reduce(
+    (acc, collateralPosition) =>
+      acc || collateralPosition.configVersion.efficiencyMode.variantId !== '0',
+    false,
+  )
 }
 
 const CdpStoreKey = Symbol('CdpStore')

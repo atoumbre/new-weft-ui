@@ -49,49 +49,45 @@ export class PriceStore extends BaseStore {
   async loadPrices(addresses: string[] = []) {
     const existingAddresses = Object.keys(this.prices)
     const baseAddresses = addresses.length > 0 ? addresses : this.lastRequestedAddresses
-    const mergedAddresses = [...new Set([
-      ...existingAddresses,
-      ...this.lastRequestedAddresses,
-      ...baseAddresses,
-    ])]
+    const mergedAddresses = [
+      ...new Set([...existingAddresses, ...this.lastRequestedAddresses, ...baseAddresses]),
+    ]
 
     if (mergedAddresses.length === 0)
       return
 
     this.lastRequestedAddresses = mergedAddresses
 
-    await this.executeWithErrorHandling(
-      async () => {
-        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-        const ledgerStateSelector: LedgerStateSelector = { timestamp: yesterday }
+    await this.executeWithErrorHandling(async () => {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const ledgerStateSelector: LedgerStateSelector = { timestamp: yesterday }
 
-        const [prices, yesterdayPrices] = await Promise.all([
-          this.weftStateApi.getPrice(mergedAddresses),
-          this.weftStateApi.getPriceAtLedgerState(mergedAddresses, ledgerStateSelector),
-        ])
+      const [prices, yesterdayPrices] = await Promise.all([
+        this.weftStateApi.getPrice(mergedAddresses),
+        this.weftStateApi.getPriceAtLedgerState(mergedAddresses, ledgerStateSelector),
+      ])
 
-        const previousPriceMap = new Map(yesterdayPrices.map(price => [price.resourceAddress, price.price]))
-        const nextPrices: Record<string, Prices> = { ...this.prices }
+      const previousPriceMap = new Map(
+        yesterdayPrices.map(price => [price.resourceAddress, price.price]),
+      )
+      const nextPrices: Record<string, Prices> = { ...this.prices }
 
-        for (const currentPrice of prices) {
-          const previousPrice = previousPriceMap.get(currentPrice.resourceAddress) ?? currentPrice.price
+      for (const currentPrice of prices) {
+        const previousPrice
+          = previousPriceMap.get(currentPrice.resourceAddress) ?? currentPrice.price
 
-          nextPrices[currentPrice.resourceAddress] = {
-            current: currentPrice.price,
-            previous: previousPrice,
-          }
+        nextPrices[currentPrice.resourceAddress] = {
+          current: currentPrice.price,
+          previous: previousPrice,
         }
+      }
 
-        this.prices = nextPrices
-      },
-      'loadPrices',
-    )
+      this.prices = nextPrices
+    }, 'loadPrices')
   }
 
-  getPrice(
-    address: string,
-  ): Prices {
-    const prices = (this.prices[address] ?? { current: dec(0), previous: dec(0) })
+  getPrice(address: string): Prices {
+    const prices = this.prices[address] ?? { current: dec(0), previous: dec(0) }
 
     return prices
   }

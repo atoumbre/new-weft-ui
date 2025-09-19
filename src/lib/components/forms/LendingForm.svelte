@@ -87,7 +87,12 @@
     const defaultAsset = ''
     rows = [
       ...rows,
-      { id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, type, asset: defaultAsset, amountStr: '' },
+      {
+        id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+        type,
+        asset: defaultAsset,
+        amountStr: '',
+      },
     ]
   }
 
@@ -107,8 +112,16 @@
     // Initialize rows with one row; asset remains empty
     const initialType: ActionType = presetType ?? 'supply'
     const initialAsset = presetAsset ?? ''
-    const initialAmount = presetAmount !== undefined && presetAmount !== null ? String(presetAmount) : ''
-    rows = [{ id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, type: initialType, asset: initialAsset, amountStr: initialAmount }]
+    const initialAmount
+      = presetAmount !== undefined && presetAmount !== null ? String(presetAmount) : ''
+    rows = [
+      {
+        id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+        type: initialType,
+        asset: initialAsset,
+        amountStr: initialAmount,
+      },
+    ]
   })
 
   function submit() {
@@ -135,8 +148,12 @@
 <!-- Modal wrapper -->
 <div class={`modal ${open ? 'modal-open' : ''}`} role='dialog' aria-modal={open}>
   <div class='modal-box max-w-4xl'>
-    <button class='btn btn-sm btn-circle btn-ghost absolute right-2 top-2' aria-label='Close' onclick={() => (open = false)}>✕</button>
-    <h3 class='font-semibold text-lg mb-2'>Supply / Withdraw</h3>
+    <button
+      class='btn absolute top-2 right-2 btn-circle btn-ghost btn-sm'
+      aria-label='Close'
+      onclick={() => (open = false)}>✕</button
+    >
+    <h3 class='mb-2 text-lg font-semibold'>Supply / Withdraw</h3>
 
     <div class='space-y-4'>
       {#if invalid}
@@ -146,26 +163,30 @@
       {/if}
 
       <div class='card bg-base-200/60'>
-        <div class='card-body p-3 sm:p-4 space-y-3'>
+        <div class='card-body space-y-3 p-3 sm:p-4'>
           <div class='flex items-center justify-between'>
             <div class='card-title text-base'>Actions</div>
             <div class='flex items-center gap-3'>
               <div class='text-xs opacity-70'>{rows.length} rows</div>
-              <button class='btn btn-ghost btn-xs' onclick={clearAll} disabled={!rows.length}>Clear</button>
+              <button class='btn btn-ghost btn-xs' onclick={clearAll} disabled={!rows.length}
+              >Clear</button
+              >
             </div>
           </div>
 
           <!-- Rows -->
           <div class='space-y-2'>
             {#each rows as r (r.id)}
-              <div class='grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2'>
+              <div
+                class='grid grid-cols-1 items-center gap-2 md:grid-cols-[auto_1fr_auto_auto_auto]'
+              >
                 <div>
                   <div class='badge badge-ghost'>
                     {r.type === 'supply' ? 'Supply' : 'Withdraw'}
                   </div>
                 </div>
                 <select
-                  class='select select-bordered select-sm'
+                  class='select-bordered select select-sm'
                   value={r.asset}
                   aria-label='Asset'
                   onchange={e => setRowAsset(r.id, (e.target as HTMLSelectElement).value)}
@@ -177,7 +198,7 @@
                 </select>
                 <div class='flex items-center gap-2'>
                   <input
-                    class='input input-bordered input-sm w-40'
+                    class='input-bordered input input-sm w-40'
                     type='text'
                     inputmode='decimal'
                     placeholder='Amount'
@@ -187,14 +208,24 @@
                   />
                   {#if r.type === 'withdraw' && typeof balances[r.asset] === 'number'}
                     <div class='join hidden sm:flex'>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 0.25)}>25%</button>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 0.5)}>50%</button>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 1)}>MAX</button>
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 0.25)}
+                      >25%</button
+                      >
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 0.5)}
+                      >50%</button
+                      >
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 1)}
+                      >MAX</button
+                      >
                     </div>
                   {/if}
                 </div>
                 <div class='text-right'>
-                  <button class='btn btn-ghost btn-xs' aria-label='Remove' onclick={() => removeRow(r.id)}>✕</button>
+                  <button
+                    class='btn btn-ghost btn-xs'
+                    aria-label='Remove'
+                    onclick={() => removeRow(r.id)}>✕</button
+                  >
                 </div>
               </div>
             {/each}
@@ -205,14 +236,16 @@
             <div class={`dropdown dropdown-top ${addMenuOpen ? 'dropdown-open' : ''}`}>
               <button
                 type='button'
-                class='btn btn-primary btn-sm'
+                class='btn btn-sm btn-primary'
                 onclick={() => (addMenuOpen = !addMenuOpen)}
               >
                 Add action
               </button>
-              <ul class='dropdown-content menu bg-base-200 rounded-box z-[1] w-56 p-2 shadow'>
+              <ul class='dropdown-content menu z-[1] w-56 rounded-box bg-base-200 p-2 shadow'>
                 <li><button type='button' onclick={() => chooseAdd('supply')}>Supply</button></li>
-                <li><button type='button' onclick={() => chooseAdd('withdraw')}>Withdraw</button></li>
+                <li>
+                  <button type='button' onclick={() => chooseAdd('withdraw')}>Withdraw</button>
+                </li>
               </ul>
             </div>
           </div>
@@ -221,9 +254,17 @@
 
       <!-- Submit section -->
       <div class='flex justify-end'>
-        <button class='btn btn-primary btn-sm' onclick={submit} disabled={!canSubmit}>Review & Submit</button>
+        <button class='btn btn-sm btn-primary' onclick={submit} disabled={!canSubmit}
+        >Review & Submit</button
+        >
       </div>
     </div>
   </div>
-  <div class='modal-backdrop' onclick={() => (open = false)} onkeydown={e => e.key === 'Escape' && (open = false)} role='button' tabindex='0'></div>
+  <div
+    class='modal-backdrop'
+    onclick={() => (open = false)}
+    onkeydown={e => e.key === 'Escape' && (open = false)}
+    role='button'
+    tabindex='0'
+  ></div>
 </div>

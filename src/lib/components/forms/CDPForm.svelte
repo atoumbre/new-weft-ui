@@ -47,8 +47,8 @@
       { symbol: 'DAI', logo: '🪙' },
     ],
     prices = { ETH: 2485.67, WBTC: 67234.12, LINK: 15.0, MATIC: 0.9, USDC: 1, USDT: 1, DAI: 1 },
-    ltv = { ETH: 1.00, WBTC: 0.7, LINK: 0.65, MATIC: 0.6 },
-    liqThreshold = { ETH: 0.85, WBTC: 0.8, LINK: 1.00, MATIC: 0.7 },
+    ltv = { ETH: 1.0, WBTC: 0.7, LINK: 0.65, MATIC: 0.6 },
+    liqThreshold = { ETH: 0.85, WBTC: 0.8, LINK: 1.0, MATIC: 0.7 },
     currentCollateral = {},
     currentDebt = {},
     balancesCollateral = {},
@@ -64,11 +64,11 @@
 
   const collatSet = $derived(new Set(collateralAssets.map(a => a.symbol)))
   const debtSet = $derived(new Set(debtAssets.map(a => a.symbol)))
-  const byAsset = $derived(() => {
-    const map = new Map<string, Asset>()
-    for (const a of [...collateralAssets, ...debtAssets]) map.set(a.symbol, a)
-    return map
-  })
+  // const byAsset = $derived(() => {
+  //   const map = new Map<string, Asset>()
+  //   for (const a of [...collateralAssets, ...debtAssets]) map.set(a.symbol, a)
+  //   return map
+  // })
 
   // UI: add action dropdown state
   let addMenuOpen = $state(false)
@@ -118,19 +118,19 @@
   const canSubmit = $derived(allValid)
 
   // Dedup by (type, asset)
-  function dedup(list: CdpAction[]): CdpAction[] {
-    const map = new Map<string, CdpAction>()
-    for (const a of list) {
-      if (!a || !a.asset || a.amount <= 0)
-        continue
-      const key = `${a.type}:${a.asset}`
-      const prev = map.get(key)
-      if (prev)
-        prev.amount += a.amount
-      else map.set(key, { ...a })
-    }
-    return Array.from(map.values())
-  }
+  // function dedup(list: CdpAction[]): CdpAction[] {
+  //   const map = new Map<string, CdpAction>()
+  //   for (const a of list) {
+  //     if (!a || !a.asset || a.amount <= 0)
+  //       continue
+  //     const key = `${a.type}:${a.asset}`
+  //     const prev = map.get(key)
+  //     if (prev)
+  //       prev.amount += a.amount
+  //     else map.set(key, { ...a })
+  //   }
+  //   return Array.from(map.values())
+  // }
 
   function addRow(type: ActionType) {
     invalid = null
@@ -138,13 +138,20 @@
     const defaultAsset = ''
     rows = [
       ...rows,
-      { id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, type, asset: defaultAsset, amountStr: '' },
+      {
+        id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+        type,
+        asset: defaultAsset,
+        amountStr: '',
+      },
     ]
   }
   function removeRow(id: string) {
     rows = rows.filter(r => r.id !== id)
   }
-  function clearAll() { rows = [] }
+  function clearAll() {
+    rows = []
+  }
 
   // Prefill on open
   $effect(() => {
@@ -154,8 +161,16 @@
     // Initialize rows with one row; asset remains empty
     const initialType: ActionType = presetType ?? 'borrow'
     const initialAsset = presetAsset ?? ''
-    const initialAmount = presetAmount !== undefined && presetAmount !== null ? String(presetAmount) : ''
-    rows = [{ id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, type: initialType, asset: initialAsset, amountStr: initialAmount }]
+    const initialAmount
+      = presetAmount !== undefined && presetAmount !== null ? String(presetAmount) : ''
+    rows = [
+      {
+        id: crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+        type: initialType,
+        asset: initialAsset,
+        amountStr: initialAmount,
+      },
+    ]
   })
 
   // Impact calculations
@@ -250,8 +265,12 @@
 
 <div class={`modal ${open ? 'modal-open' : ''}`} role='dialog' aria-modal={open}>
   <div class='modal-box max-w-4xl'>
-    <button class='btn btn-sm btn-circle btn-ghost absolute right-2 top-2' aria-label='Close' onclick={() => (open = false)}>✕</button>
-    <h3 class='font-semibold text-lg mb-2'>Update CDP</h3>
+    <button
+      class='btn absolute top-2 right-2 btn-circle btn-ghost btn-sm'
+      aria-label='Close'
+      onclick={() => (open = false)}>✕</button
+    >
+    <h3 class='mb-2 text-lg font-semibold'>Update CDP</h3>
 
     <div class='space-y-4'>
       {#if invalid}
@@ -261,26 +280,36 @@
       {/if}
 
       <div class='card bg-base-200/60'>
-        <div class='card-body p-3 sm:p-4 space-y-3'>
+        <div class='card-body space-y-3 p-3 sm:p-4'>
           <div class='flex items-center justify-between'>
             <div class='card-title text-base'>Actions</div>
             <div class='flex items-center gap-3'>
               <div class='text-xs opacity-70'>{rows.length} rows</div>
-              <button class='btn btn-ghost btn-xs' onclick={clearAll} disabled={!rows.length}>Clear</button>
+              <button class='btn btn-ghost btn-xs' onclick={clearAll} disabled={!rows.length}
+              >Clear</button
+              >
             </div>
           </div>
 
           <!-- Rows -->
           <div class='space-y-2'>
             {#each rows as r (r.id)}
-              <div class='grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2'>
+              <div
+                class='grid grid-cols-1 items-center gap-2 md:grid-cols-[auto_1fr_auto_auto_auto]'
+              >
                 <div>
                   <div class='badge badge-ghost'>
-                    {r.type === 'add_collateral' ? 'Add Collateral' : r.type === 'remove_collateral' ? 'Remove' : r.type === 'borrow' ? 'Borrow' : 'Repay'}
+                    {r.type === 'add_collateral'
+                      ? 'Add Collateral'
+                      : r.type === 'remove_collateral'
+                      ? 'Remove'
+                      : r.type === 'borrow'
+                      ? 'Borrow'
+                      : 'Repay'}
                   </div>
                 </div>
                 <select
-                  class='select select-bordered select-sm'
+                  class='select-bordered select select-sm'
                   value={r.asset}
                   aria-label='Asset'
                   onchange={e => setRowAsset(r.id, (e.target as HTMLSelectElement).value)}
@@ -298,7 +327,7 @@
                 </select>
                 <div class='flex items-center gap-2'>
                   <input
-                    class='input input-bordered input-sm w-40'
+                    class='input-bordered input input-sm w-40'
                     type='text'
                     inputmode='decimal'
                     placeholder='Amount'
@@ -308,14 +337,24 @@
                   />
                   {#if (r.type === 'remove_collateral' && (balancesCollateral[r.asset] ?? currentCollateral[r.asset])) || (r.type === 'repay' && (balancesDebt[r.asset] ?? currentDebt[r.asset]))}
                     <div class='join hidden sm:flex'>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 0.25)}>25%</button>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 0.5)}>50%</button>
-                      <button class='btn btn-xs join-item' onclick={() => setPctForRow(r, 1)}>MAX</button>
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 0.25)}
+                      >25%</button
+                      >
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 0.5)}
+                      >50%</button
+                      >
+                      <button class='btn join-item btn-xs' onclick={() => setPctForRow(r, 1)}
+                      >MAX</button
+                      >
                     </div>
                   {/if}
                 </div>
                 <div class='text-right'>
-                  <button class='btn btn-ghost btn-xs' aria-label='Remove' onclick={() => removeRow(r.id)}>✕</button>
+                  <button
+                    class='btn btn-ghost btn-xs'
+                    aria-label='Remove'
+                    onclick={() => removeRow(r.id)}>✕</button
+                  >
                 </div>
               </div>
             {/each}
@@ -326,14 +365,22 @@
             <div class={`dropdown dropdown-top ${addMenuOpen ? 'dropdown-open' : ''}`}>
               <button
                 type='button'
-                class='btn btn-primary btn-sm'
+                class='btn btn-sm btn-primary'
                 onclick={() => (addMenuOpen = !addMenuOpen)}
               >
                 Add action
               </button>
-              <ul class='dropdown-content menu bg-base-200 rounded-box z-[1] w-56 p-2 shadow'>
-                <li><button type='button' onclick={() => chooseAdd('add_collateral')}>Add Collateral</button></li>
-                <li><button type='button' onclick={() => chooseAdd('remove_collateral')}>Remove Collateral</button></li>
+              <ul class='dropdown-content menu z-[1] w-56 rounded-box bg-base-200 p-2 shadow'>
+                <li>
+                  <button type='button' onclick={() => chooseAdd('add_collateral')}
+                  >Add Collateral</button
+                  >
+                </li>
+                <li>
+                  <button type='button' onclick={() => chooseAdd('remove_collateral')}
+                  >Remove Collateral</button
+                  >
+                </li>
                 <li><button type='button' onclick={() => chooseAdd('borrow')}>Borrow</button></li>
                 <li><button type='button' onclick={() => chooseAdd('repay')}>Repay</button></li>
               </ul>
@@ -346,14 +393,18 @@
       <div class='card bg-base-200/60'>
         <div class='card-body p-3 sm:p-4'>
           <div class='card-title text-base'>Impact</div>
-          <div class='grid grid-cols-2 gap-3 mt-2'>
+          <div class='mt-2 grid grid-cols-2 gap-3'>
             <div>
               <div class='text-xs opacity-70'>Borrow Power</div>
-              <div class='text-sm'><AmountDisplay amount={dec(before.bpUSD)} usd={dec(before.bpUSD)} /></div>
+              <div class='text-sm'>
+                <AmountDisplay amount={dec(before.bpUSD)} usd={dec(before.bpUSD)} />
+              </div>
             </div>
             <div>
               <div class='text-xs opacity-70'>Borrow Power</div>
-              <div class='text-sm'><AmountDisplay amount={dec(after.bpUSD)} usd={dec(after.bpUSD)} /></div>
+              <div class='text-sm'>
+                <AmountDisplay amount={dec(after.bpUSD)} usd={dec(after.bpUSD)} />
+              </div>
             </div>
           </div>
 
@@ -367,12 +418,20 @@
               <HealthPill ltv={dec(after.health)} showValue={true} />
             </div>
           </div>
-          <div class='flex justify-end mt-3'>
-            <button class='btn btn-primary btn-sm' onclick={submit} disabled={!canSubmit}>Review & Submit</button>
+          <div class='mt-3 flex justify-end'>
+            <button class='btn btn-sm btn-primary' onclick={submit} disabled={!canSubmit}
+            >Review & Submit</button
+            >
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div class='modal-backdrop' onclick={() => (open = false)} onkeydown={e => e.key === 'Escape' && (open = false)} role='button' tabindex='0'></div>
+  <div
+    class='modal-backdrop'
+    onclick={() => (open = false)}
+    onkeydown={e => e.key === 'Escape' && (open = false)}
+    role='button'
+    tabindex='0'
+  ></div>
 </div>

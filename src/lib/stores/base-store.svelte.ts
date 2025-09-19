@@ -42,9 +42,10 @@ export abstract class BaseStore {
     this.clearError()
 
     try {
-      const result = retryable && this.options.autoRetry
-        ? await this.withRetry(operation, this.options.maxRetries, operationName)
-        : await operation()
+      const result
+        = retryable && this.options.autoRetry
+          ? await this.withRetry(operation, this.options.maxRetries, operationName)
+          : await operation()
 
       this.lastFetch = new Date()
       return result
@@ -89,7 +90,10 @@ export abstract class BaseStore {
         }
 
         const delay = this.options.retryDelay * 2 ** (attempt - 1) // Exponential backoff
-        console.warn(`Store operation [${operationName}] failed (attempt ${attempt}/${maxAttempts}). Retrying in ${delay}ms...`, error)
+        console.warn(
+          `Store operation [${operationName}] failed (attempt ${attempt}/${maxAttempts}). Retrying in ${delay}ms...`,
+          error,
+        )
 
         await new Promise(resolve => setTimeout(resolve, delay))
       }
@@ -104,15 +108,16 @@ export abstract class BaseStore {
   private isRetryableError(error: unknown): boolean {
     if (error instanceof Error) {
       // Network errors are typically retryable
-      if (error.message.includes('fetch')
+      if (
+        error.message.includes('fetch')
         || error.message.includes('network')
-        || error.message.includes('timeout')) {
+        || error.message.includes('timeout')
+      ) {
         return true
       }
 
       // API rate limits are retryable
-      if (error.message.includes('rate limit')
-        || error.message.includes('too many requests')) {
+      if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
         return true
       }
     }

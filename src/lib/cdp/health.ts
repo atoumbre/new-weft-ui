@@ -13,6 +13,7 @@ export interface CdpHealthDefinition {
   badgeClass: string
   minInclusive?: Decimal
   maxExclusive?: Decimal
+
 }
 
 export const CDP_HEALTH_DEFINITIONS: CdpHealthDefinition[] = [
@@ -50,7 +51,6 @@ export const CDP_HEALTH_DEFINITIONS: CdpHealthDefinition[] = [
     badgeClass: 'bg-[#bbf7d0] text-[#166534] border-transparent',
     maxExclusive: dec(0.7),
   },
-
 ]
 
 function toDecimal(value: Decimalish): Decimal {
@@ -71,10 +71,16 @@ export function resolveCdpHealthDefinition(ltv: Decimalish): CdpHealthDefinition
   return match ?? CDP_HEALTH_DEFINITIONS[CDP_HEALTH_DEFINITIONS.length - 1]
 }
 
-export const getCdpHealthTextClass = (ltv: Decimalish): string => resolveCdpHealthDefinition(ltv).textClass
+export function getCdpHealthTextClass(ltv: Decimalish): string {
+  return resolveCdpHealthDefinition(ltv).textClass
+}
 
-export const getCdpHealthBadgeClass = (ltv: Decimalish): string => resolveCdpHealthDefinition(ltv).badgeClass
+export function getCdpHealthBadgeClass(ltv: Decimalish): string {
+  return resolveCdpHealthDefinition(ltv).badgeClass
+}
 
-export const getCdpHealthShortLabel = (ltv: Decimalish): string => resolveCdpHealthDefinition(ltv).shortLabel
+export function getCdpHealthShortLabel(ltv: Decimalish): string {
+  return resolveCdpHealthDefinition(ltv).shortLabel
+}
 
 export const getCdpHealthLabel = (ltv: Decimalish): string => resolveCdpHealthDefinition(ltv).label

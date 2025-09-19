@@ -1,4 +1,14 @@
-import type { CollateralResource, FungibleResourceState, GlobalCollateralService, LoanResource, LoanService, MarketConfig, MarketProtocolFeeConfig, MarketService, OperatingStatusValue } from '$lib/internal_modules/dist'
+import type {
+  CollateralResource,
+  FungibleResourceState,
+  GlobalCollateralService,
+  LoanResource,
+  LoanService,
+  MarketConfig,
+  MarketProtocolFeeConfig,
+  MarketService,
+  OperatingStatusValue,
+} from '$lib/internal_modules/dist'
 import type Decimal from 'decimal.js'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
 import { getContext, onDestroy, setContext } from 'svelte'
@@ -83,17 +93,23 @@ export class MarketInfoStore extends BaseStore {
 
   // Helper methods to access specific market info
   get loanResourcesByAddress() {
-    return this.loanResources.reduce((acc, resource) => {
-      acc[resource.resourceAddress] = resource
-      return acc
-    }, {} as Record<string, LoanResource>)
+    return this.loanResources.reduce(
+      (acc, resource) => {
+        acc[resource.resourceAddress] = resource
+        return acc
+      },
+      {} as Record<string, LoanResource>,
+    )
   }
 
   get collateralResourcesByAddress() {
-    return this.collateralResources.reduce((acc, resource) => {
-      acc[resource.resourceAddress] = resource
-      return acc
-    }, {} as Record<string, CollateralResource>)
+    return this.collateralResources.reduce(
+      (acc, resource) => {
+        acc[resource.resourceAddress] = resource
+        return acc
+      },
+      {} as Record<string, CollateralResource>,
+    )
   }
 
   getLoanResource(resourceAddress: string): LoanResource | undefined {

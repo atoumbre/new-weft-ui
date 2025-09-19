@@ -13,10 +13,7 @@ export interface ValueFormatOptions {
   currency?: string
 }
 
-function fValueInternal(
-  n: Decimal,
-  input: ValueFormatOptions = {},
-): string {
+function fValueInternal(n: Decimal, input: ValueFormatOptions = {}): string {
   const fullPrecision = input.fullPrecision ?? false
   const currency = input.currency ?? 'USD'
 
@@ -35,9 +32,7 @@ function fValueInternal(
     return format(n.toFixed(MIN_SIG_DIGITS), '$0,0.##', { currency })
 
   const digitsToShow = Math.max(0, MIN_SIG_DIGITS - integerDigits.toNumber())
-  const pattern = digitsToShow > 0
-    ? `$0,0.${'X'.repeat(digitsToShow)}`
-    : '$0,0'
+  const pattern = digitsToShow > 0 ? `$0,0.${'X'.repeat(digitsToShow)}` : '$0,0'
   return format(n.toFixed(digitsToShow), pattern, { currency })
 }
 
