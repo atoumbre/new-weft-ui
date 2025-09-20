@@ -81,11 +81,8 @@
     })
 
     marketInfoStore.lsuAmounts.forEach((lsuData) => {
-      const nativeDetails = lsuData.resourceDetails?.$details.native_resource_details as any
-      const unitRedemptionValueAmount
-        = nativeDetails?.kind === 'ValidatorLiquidStakeUnit'
-          ? (nativeDetails.unit_redemption_value?.[0]?.amount ?? 0)
-          : 0
+      const unitRedemptionValueAmount = lsuData.unitRedemptionValue
+
       const unitRedemptionValue = dec(unitRedemptionValueAmount)
       const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
 
@@ -129,14 +126,14 @@
         <Tab id='lsu' bind:activeId={activeTab} label='LSU Collaterals' />
       </Tabs>
     </div>
-  </div>
 
-  <!-- Tab Content -->
-  {#if activeTab === 'lending'}
-    <LendingPoolsSection />
-  {:else if activeTab === 'collaterals'}
-    <CollateralsSection />
-  {:else if activeTab === 'lsu'}
-    <LSUSection />
-  {/if}
+    <!-- Tab Content -->
+    {#if activeTab === 'lending'}
+      <LendingPoolsSection />
+    {:else if activeTab === 'collaterals'}
+      <CollateralsSection />
+    {:else if activeTab === 'lsu'}
+      <LSUSection />
+    {/if}
+  </div>
 </div>

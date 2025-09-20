@@ -48,7 +48,7 @@
     let cdpsToAnalyze = [...cdpStore.filteredCdpList]
     if (showOnlyRiskyCdps) {
       cdpsToAnalyze = cdpsToAnalyze.filter(
-        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.8)) && !inEfficiency(cdp),
+        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7)) && !inEfficiency(cdp),
       )
     }
 
@@ -75,7 +75,7 @@
 
     if (showOnlyRiskyCdps) {
       filteredList = filteredList.filter(
-        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.0)) && !inEfficiency(cdp),
+        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7)) && !inEfficiency(cdp),
       )
     }
 
@@ -115,14 +115,14 @@
   const atRiskCdpCount = $derived.by(
     () =>
       cdpStore.filteredCdpList.filter(
-        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.0)) && !inEfficiency(cdp),
+        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7)) && !inEfficiency(cdp),
       ).length,
   )
 
   const atRiskLoanAmount = $derived.by(() =>
     cdpStore.filteredCdpList
       .filter(
-        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7 * 1.0)) && !inEfficiency(cdp),
+        cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7)) && !inEfficiency(cdp),
       )
       .reduce((sum, cdp) => sum.add(convertXrdToUsd(cdp.totalLoanValue)), dec(0)),
   )
@@ -183,7 +183,7 @@
     const breakdown = new Map<string, { amount: Decimal, value: Decimal }>()
 
     cdpStore.filteredCdpList
-      .filter(cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.8)) && !inEfficiency(cdp))
+      .filter(cdp => cdp.liquidationLtv.greaterThanOrEqualTo(dec(0.7)) && !inEfficiency(cdp))
       .forEach((cdp) => {
         Object.entries(cdp.loanPositions || {}).forEach(([resourceAddress, loan]) => {
           const current = breakdown.get(resourceAddress) || { amount: dec(0), value: dec(0) }

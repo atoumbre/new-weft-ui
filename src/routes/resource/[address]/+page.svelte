@@ -1,4 +1,5 @@
 <script lang='ts'>
+  import type { LoanResource } from '$lib/internal_modules/dist'
   import { page } from '$app/stores'
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import StatusBadge from '$lib/components/common/StatusBadge.svelte'
@@ -32,17 +33,17 @@
   const isPriceUp = $derived(priceChangePct.gte(dec(0)))
 
   // Get resource metadata
-  const resourceDetails = $derived(
-    loanResource?.resourceDetails || collateralResource?.resourceDetails,
+  const metadata = $derived(
+    loanResource?.metadata || collateralResource?.metadata,
   )
   const symbol = $derived(
-    resourceDetails?.$metadata?.symbol || resourceDetails?.$metadata?.name || resourceAddress.slice(-4),
+    metadata?.symbol || metadata?.name || resourceAddress.slice(-4),
   )
-  const iconUrl = $derived(resourceDetails?.$metadata?.iconUrl)
-  const name = $derived(resourceDetails?.$metadata?.name || symbol)
-  const description = $derived(resourceDetails?.$metadata?.description || '')
+  const iconUrl = $derived(metadata?.iconUrl)
+  const name = $derived(metadata?.name || symbol)
+  const description = $derived(metadata?.description || '')
   const metadataTags = $derived.by(() => {
-    const tags = resourceDetails?.$metadata?.tags
+    const tags = metadata?.tags
     return Array.isArray(tags) ? tags : []
   })
 
@@ -90,7 +91,7 @@
     if (!collateralResource)
       return {}
 
-    const peersByGroupId: Record<string, any[]> = {}
+    const peersByGroupId: Record<string, LoanResource[]> = {}
     const allLoanResources = marketInfoStore.loanResources || []
 
     // For each efficiency group this collateral participates in
@@ -707,16 +708,16 @@
                               {#each getPeerLoanResources[groupId] || [] as peer}
                                 <div
                                   class='tooltip'
-                                  data-tip={peer.resourceDetails?.$metadata?.symbol
-                                    || peer.resourceDetails?.$metadata?.name
+                                  data-tip={peer.metadata?.symbol
+                                    || peer.metadata?.name
                                     || 'Unknown'}
                                 >
                                   <div class='avatar'>
                                     <div class='mask h-6 w-6 bg-base-300 mask-squircle'>
-                                      {#if peer.resourceDetails?.$metadata?.iconUrl?.startsWith('http')}
+                                      {#if peer.metadata?.iconUrl?.startsWith('http')}
                                         <img
-                                          src={peer.resourceDetails.$metadata.iconUrl}
-                                          alt={peer.resourceDetails.$metadata.symbol || 'Token'}
+                                          src={peer.metadata.iconUrl}
+                                          alt={peer.metadata.symbol || 'Token'}
                                           class='object-cover'
                                         />
                                       {:else}
@@ -724,8 +725,8 @@
                                           class='flex h-full w-full items-center justify-center text-xs font-bold'
                                         >
                                           {(
-                                            peer.resourceDetails?.$metadata?.symbol
-                                            || peer.resourceDetails?.$metadata?.name
+                                            peer.metadata?.symbol
+                                            || peer.metadata?.name
                                             || '?'
                                           ).slice(0, 2)}
                                         </div>

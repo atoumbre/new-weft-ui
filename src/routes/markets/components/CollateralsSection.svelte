@@ -38,12 +38,15 @@
     const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
 
     // Get token symbol from resource info or default
+
+    const metadata = collateralResource?.metadata
+
     const symbol
-      = collateralResource?.resourceDetails?.$metadata?.symbol
-        || collateralResource?.resourceDetails?.$metadata?.name
+      = metadata?.symbol
+        || metadata?.name
         || collateralResource.resourceAddress.slice(-4)
 
-    const iconUrl = collateralResource?.resourceDetails?.$metadata?.iconUrl
+    const iconUrl = metadata?.iconUrl
 
     // Calculate total supplied USD value using the totalDeposit from CollateralResource
     const totalSuppliedDirectUsd = collateralResource.totalDeposit.mul(priceInUSD)
@@ -81,81 +84,81 @@
   })
 </script>
 
-<div class='card bg-base-200/60'>
-  <div class='card-body'>
-    <div class='flex items-center justify-between gap-3'>
-      <h2 class='card-title'>Collaterals</h2>
-    </div>
-    <div class='mt-2 overflow-x-auto'>
-      <table class='table table-sm'>
-        <thead class='sticky top-0 bg-base-300/30 backdrop-blur'>
+<!-- <div class='card bg-base-200/60'> -->
+<div class='card-body'>
+  <div class='flex items-center justify-between'>
+    <h2 class='card-title'>Collaterals</h2>
+  </div>
+  <div class='mt-2 overflow-x-auto'>
+    <table class='table table-sm'>
+      <thead class='sticky top-0 bg-base-300/30 backdrop-blur'>
+        <tr>
+          <th>Asset</th>
+          <th><div class='tooltip' data-tip='Max allowed borrow ratio'>LTV</div></th>
+          <th
+          ><div class='tooltip' data-tip='Ratio at which liquidation occurs'>
+            Liquidation LTV
+          </div></th
+          >
+          <th
+          ><div class='tooltip' data-tip='Discount applied during liquidation'>
+            Liquidation Penalty
+          </div></th
+          >
+          <th>Supplied</th>
+          <th>Supplied and Lent</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#if marketInfoStore.loading}
           <tr>
-            <th>Asset</th>
-            <th><div class='tooltip' data-tip='Max allowed borrow ratio'>LTV</div></th>
-            <th
-            ><div class='tooltip' data-tip='Ratio at which liquidation occurs'>
-              Liquidation LTV
-            </div></th
-            >
-            <th
-            ><div class='tooltip' data-tip='Discount applied during liquidation'>
-              Liquidation Penalty
-            </div></th
-            >
-            <th>Supplied</th>
-            <th>Supplied and Lent</th>
-            <th>Actions</th>
+            <td colspan='7' class='py-8 text-center'>
+              <span class='loading loading-md loading-spinner'></span>
+              <span class='ml-2 opacity-70'>Loading collaterals...</span>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {#if marketInfoStore.loading}
+        {:else if availableCollaterals.length === 0}
+          <tr>
+            <td colspan='7' class='py-8 text-center opacity-70'>No collaterals available</td>
+          </tr>
+        {:else}
+          {#each availableCollaterals as collateral}
             <tr>
-              <td colspan='7' class='py-8 text-center'>
-                <span class='loading loading-md loading-spinner'></span>
-                <span class='ml-2 opacity-70'>Loading collaterals...</span>
+              <td>
+                <AssetCard
+                  symbol={collateral.asset}
+                  iconUrl={collateral.logo}
+                  previousPriceUsd={collateral.previousPriceInUSD}
+                  priceUsd={collateral.priceUsd}
+                  resourceAddress={collateral.id}
+                ></AssetCard>
+              </td>
+              <td><span class='font-medium'>{fPercent(collateral.ltv)}</span></td>
+              <td><span class='font-medium'>{fPercent(collateral.liquidationLtv)}</span></td>
+              <td><span class='font-medium'>{fPercent(collateral.liquidationPenalty)}</span></td>
+              <td class='text-sm'>
+                <AmountDisplay
+                  amount={collateral.totalSuppliedDirect}
+                  usd={collateral.totalSuppliedDirectUsd}
+                />
+              </td>
+              <td class='text-sm'>
+                <AmountDisplay
+                  amount={collateral.totalSuppliedWrapped}
+                  usd={collateral.totalSuppliedWrappedUsd}
+                />
+              </td>
+              <td>
+                <div class='flex gap-2'>
+                  <button class='btn btn-outline btn-sm'>Supply</button>
+                </div>
               </td>
             </tr>
-          {:else if availableCollaterals.length === 0}
-            <tr>
-              <td colspan='7' class='py-8 text-center opacity-70'>No collaterals available</td>
-            </tr>
-          {:else}
-            {#each availableCollaterals as collateral}
-              <tr>
-                <td>
-                  <AssetCard
-                    symbol={collateral.asset}
-                    iconUrl={collateral.logo}
-                    previousPriceUsd={collateral.previousPriceInUSD}
-                    priceUsd={collateral.priceUsd}
-                    resourceAddress={collateral.id}
-                  ></AssetCard>
-                </td>
-                <td><span class='font-medium'>{fPercent(collateral.ltv)}</span></td>
-                <td><span class='font-medium'>{fPercent(collateral.liquidationLtv)}</span></td>
-                <td><span class='font-medium'>{fPercent(collateral.liquidationPenalty)}</span></td>
-                <td class='text-sm'>
-                  <AmountDisplay
-                    amount={collateral.totalSuppliedDirect}
-                    usd={collateral.totalSuppliedDirectUsd}
-                  />
-                </td>
-                <td class='text-sm'>
-                  <AmountDisplay
-                    amount={collateral.totalSuppliedWrapped}
-                    usd={collateral.totalSuppliedWrappedUsd}
-                  />
-                </td>
-                <td>
-                  <div class='flex gap-2'>
-                    <button class='btn btn-outline btn-sm'>Supply</button>
-                  </div>
-                </td>
-              </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
-    </div>
+          {/each}
+        {/if}
+      </tbody>
+    </table>
   </div>
 </div>
+<!-- </div> -->

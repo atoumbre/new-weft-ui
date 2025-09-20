@@ -35,12 +35,14 @@
     const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
     const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
 
+    const metadata = loanResource?.metadata
+
     const symbol
-      = loanResource?.resourceDetails?.$metadata?.symbol
-        || loanResource?.resourceDetails?.$metadata?.name
+      = metadata?.symbol
+        || metadata?.name
         || loanResource.resourceAddress.slice(-4)
 
-    const iconUrl = loanResource?.resourceDetails?.$metadata?.iconUrl
+    const iconUrl = metadata?.iconUrl
 
     const pool = loanResource.lendingPoolState!
     // Calculate utilization percentage
@@ -73,84 +75,84 @@
   )
 </script>
 
-<div class='card bg-base-200/60'>
-  <div class='card-body'>
-    <div class='mb-4 flex flex-wrap items-center justify-between gap-4'>
-      <h2 class='card-title'>Lending Pools</h2>
-    </div>
+<!-- <div class='card bg-base-200/60'> -->
+<div class='card-body'>
+  <div class='flex items-center justify-between'>
+    <h2 class='card-title'>Lending Pools</h2>
+  </div>
 
-    <div class='mt-2 overflow-x-auto'>
-      <table class='table table-sm'>
-        <thead class='sticky top-0 bg-base-300/30 backdrop-blur'>
+  <div class='mt-2 overflow-x-auto'>
+    <table class='table table-sm'>
+      <thead class='sticky top-0 bg-base-300/30 backdrop-blur'>
+        <tr>
+          <th>Asset</th>
+          <th><div class='tooltip' data-tip='Annualized return to suppliers'>Supply APR</div></th>
+          <th
+          ><div class='tooltip' data-tip='Annualized rate charged to borrowers'>
+            Borrow APR
+          </div></th
+          >
+          <th><div class='tooltip' data-tip='Borrowed / Supplied'>Utilization</div></th>
+          <th>Supplied</th>
+          <th>Borrowed</th>
+          <th
+          ><div class='tooltip' data-tip='Liquidity immediately available for loans'>
+            Liquidity
+          </div></th
+          >
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#if marketInfoStore.loading}
           <tr>
-            <th>Asset</th>
-            <th><div class='tooltip' data-tip='Annualized return to suppliers'>Supply APR</div></th>
-            <th
-            ><div class='tooltip' data-tip='Annualized rate charged to borrowers'>
-              Borrow APR
-            </div></th
-            >
-            <th><div class='tooltip' data-tip='Borrowed / Supplied'>Utilization</div></th>
-            <th>Supplied</th>
-            <th>Borrowed</th>
-            <th
-            ><div class='tooltip' data-tip='Liquidity immediately available for loans'>
-              Liquidity
-            </div></th
-            >
-            <th>Actions</th>
+            <td colspan='8' class='py-8 text-center'>
+              <span class='loading loading-md loading-spinner'></span>
+              <span class='ml-2 opacity-70'>Loading lending pools...</span>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {#if marketInfoStore.loading}
+        {:else if marketPools.length === 0}
+          <tr>
+            <td colspan='8' class='py-8 text-center opacity-70'>No lending pools available</td>
+          </tr>
+        {:else}
+          {#each marketPools as pool}
             <tr>
-              <td colspan='8' class='py-8 text-center'>
-                <span class='loading loading-md loading-spinner'></span>
-                <span class='ml-2 opacity-70'>Loading lending pools...</span>
+              <td>
+                <AssetCard
+                  symbol={pool.asset}
+                  iconUrl={pool.logo}
+                  previousPriceUsd={pool.previousPriceInUSD}
+                  priceUsd={pool.priceUsd}
+                  resourceAddress={pool.id}
+                ></AssetCard>
+              </td>
+              <td><span class='font-medium text-success'>{fPercent(pool.supplyApr)}</span></td>
+              <td><span class='font-medium text-warning'>{fPercent(pool.borrowApr)}</span></td>
+              <td>
+                <UtilizationBar value={pool.utilization} />
+              </td>
+
+              <td class='text-sm'>
+                <AmountDisplay amount={pool.totalSupplyUnits} priceUSD={pool.priceUsd} />
+              </td>
+              <td class='text-sm'>
+                <AmountDisplay amount={pool.totalBorrowUnits} priceUSD={pool.priceUsd} />
+              </td>
+              <td class='text-sm'>
+                <AmountDisplay amount={pool.availableLiquidityUnits} priceUSD={pool.priceUsd} />
+              </td>
+              <td>
+                <div class='flex gap-2'>
+                  <button class='btn btn-outline btn-sm'>Supply</button>
+                  <button class='btn btn-outline btn-sm'>Borrow</button>
+                </div>
               </td>
             </tr>
-          {:else if marketPools.length === 0}
-            <tr>
-              <td colspan='8' class='py-8 text-center opacity-70'>No lending pools available</td>
-            </tr>
-          {:else}
-            {#each marketPools as pool}
-              <tr>
-                <td>
-                  <AssetCard
-                    symbol={pool.asset}
-                    iconUrl={pool.logo}
-                    previousPriceUsd={pool.previousPriceInUSD}
-                    priceUsd={pool.priceUsd}
-                    resourceAddress={pool.id}
-                  ></AssetCard>
-                </td>
-                <td><span class='font-medium text-success'>{fPercent(pool.supplyApr)}</span></td>
-                <td><span class='font-medium text-warning'>{fPercent(pool.borrowApr)}</span></td>
-                <td>
-                  <UtilizationBar value={pool.utilization} />
-                </td>
-
-                <td class='text-sm'>
-                  <AmountDisplay amount={pool.totalSupplyUnits} priceUSD={pool.priceUsd} />
-                </td>
-                <td class='text-sm'>
-                  <AmountDisplay amount={pool.totalBorrowUnits} priceUSD={pool.priceUsd} />
-                </td>
-                <td class='text-sm'>
-                  <AmountDisplay amount={pool.availableLiquidityUnits} priceUSD={pool.priceUsd} />
-                </td>
-                <td>
-                  <div class='flex gap-2'>
-                    <button class='btn btn-outline btn-sm'>Supply</button>
-                    <button class='btn btn-outline btn-sm'>Borrow</button>
-                  </div>
-                </td>
-              </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
-    </div>
+          {/each}
+        {/if}
+      </tbody>
+    </table>
   </div>
 </div>
+<!-- </div> -->

@@ -16,30 +16,31 @@
   const marketInfoStore = getMarketInfoStore()
 
   // Get resource info from market store - lookup order: collateral, loan, lsu
-  const resourceInfo = $derived.by(() => {
+  const resourceMetadata = $derived.by(() => {
     // First try collateralResources
-    let resource: CollateralResource | LoanResource | undefined
-      = marketInfoStore.collateralResources.find(res => res.resourceAddress === resourceAddress)
+    let resource: CollateralResource | LoanResource | undefined = marketInfoStore.collateralResources.find(
+      res => res.resourceAddress === resourceAddress,
+    )
     if (resource)
-      return resource
+      return resource.metadata
 
     // Then try loanResources
     resource = marketInfoStore.loanResources.find(res => res.resourceAddress === resourceAddress)
     if (resource)
-      return resource
+      return resource.metadata
 
     resource = marketInfoStore.loanResources.find(
       res => res.lendingPoolState?.depositUnitAddress === resourceAddress,
     )
     if (resource)
-      return resource
+      return resource.duMetadata
 
     // Finally try lsuAmounts
     const lsuResource = marketInfoStore.lsuAmounts.find(
       res => res.resourceAddress === resourceAddress,
     )
     if (lsuResource)
-      return lsuResource
+      return lsuResource.metadata
 
     return null
   })
@@ -47,14 +48,14 @@
   // Extract symbol, icon, and other metadata
   const symbol = $derived.by(() => {
     return (
-      resourceInfo?.resourceDetails?.$metadata?.symbol
-      || resourceInfo?.resourceDetails?.$metadata?.name
+      resourceMetadata?.symbol
+      || resourceMetadata?.name
       || resourceAddress.slice(-4)
     )
   })
 
   const iconUrl = $derived.by(() => {
-    return resourceInfo?.resourceDetails?.$metadata?.iconUrl
+    return resourceMetadata?.iconUrl
   })
 
   // Determine if this is a loan resource (for icon fallback)
@@ -66,15 +67,15 @@
 
 <div class='flex items-center gap-2 text-sm'>
   <!-- Icon -->
-  <div class='flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full'>
+  <div class='flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full'>
     {#if iconUrl?.startsWith('http')}
-      <img src={iconUrl} alt={symbol} class='h-4 w-4 rounded-full' />
+      <img src={iconUrl} alt={symbol} class='h-6 w-6 rounded-full' />
     {:else if isLoanResource}
-      <div class='flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px]'>
+      <div class='flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-[10px]'>
         💰
       </div>
     {:else}
-      <div class='flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px]'>
+      <div class='flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[10px]'>
         🔹
       </div>
     {/if}

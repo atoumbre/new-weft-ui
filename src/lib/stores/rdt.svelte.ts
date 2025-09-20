@@ -15,7 +15,7 @@ export class RadixToolkitStore {
       networkId: RadixNetwork.Mainnet,
       applicationVersion: '1.0.0',
       applicationName: 'Hello Token dApp',
-      applicationDappDefinitionAddress: 'account_rdx168r05zkmtvruvqfm4rfmgnpvhw8a47h6ln7vl3rgmyrlzmfvdlfgcg',
+         applicationDappDefinitionAddress: 'account_rdx168r05zkmtvruvqfm4rfmgnpvhw8a47h6ln7vl3rgmyrlzmfvdlfgcg',
     })
 
     // Initialize the Gateway API for network queries

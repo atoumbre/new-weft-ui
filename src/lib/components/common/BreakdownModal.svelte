@@ -30,40 +30,39 @@
     ),
   )
 
-  function findResource(resourceAddress: string) {
+  function findResourceMetadata(resourceAddress: string) {
     const collateral = marketInfoStore.collateralResources.find(
       res => res.resourceAddress === resourceAddress,
     )
     if (collateral)
-      return collateral
+      return collateral.metadata
 
     const loan = marketInfoStore.loanResources.find(
       res => res.resourceAddress === resourceAddress,
     )
     if (loan)
-      return loan
+      return loan.metadata
 
     const depositUnit = marketInfoStore.loanResources.find(
       res => res.lendingPoolState?.depositUnitAddress === resourceAddress,
     )
     if (depositUnit)
-      return depositUnit
+      return depositUnit.duMetadata
 
     const lsu = marketInfoStore.lsuAmounts.find(res => res.resourceAddress === resourceAddress)
     if (lsu)
-      return lsu
+      return { ...lsu.validatorMetadata, name: `LSU ${lsu.validatorMetadata.name}` }
 
     return null
   }
 
   function getIcon(resourceAddress: string) {
-    const resource: any = findResource(resourceAddress)
-    return resource?.resourceDetails?.$metadata?.iconUrl ?? null
+    const metadata = findResourceMetadata(resourceAddress)
+    return metadata?.iconUrl ?? null
   }
 
   function getLabel(resourceAddress: string) {
-    const resource: any = findResource(resourceAddress)
-    const metadata = resource?.resourceDetails?.$metadata
+    const metadata = findResourceMetadata(resourceAddress)
     return metadata?.symbol || metadata?.name || `…${resourceAddress.slice(-10)}`
   }
 

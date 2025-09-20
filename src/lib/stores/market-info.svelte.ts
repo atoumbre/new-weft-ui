@@ -1,15 +1,14 @@
 import type {
   CollateralResource,
-  FungibleResourceState,
   GlobalCollateralService,
   LoanResource,
   LoanService,
+  LSUCollateral,
   MarketConfig,
   MarketProtocolFeeConfig,
   MarketService,
   OperatingStatusValue,
 } from '$lib/internal_modules/dist'
-import type Decimal from 'decimal.js'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
 import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
@@ -23,11 +22,9 @@ export class MarketInfoStore extends BaseStore {
   globalMarketService: Record<MarketService, OperatingStatusValue> | null = $state(null)
   globalLoanService: Record<LoanService, OperatingStatusValue> | null = $state(null)
   globalCollateralService: GlobalCollateralService | null = $state(null)
-  lsuAmounts: {
-    resourceAddress: string
-    amount: Decimal
-    resourceDetails?: FungibleResourceState
-  }[] = $state([])
+  lsuAmounts: LSUCollateral[] = $state([])
+
+  validatorMetadata: Record<string, Record<string, string>> = $state({})
 
   allResourceAddresses = $derived.by(() => {
     return [
@@ -65,6 +62,10 @@ export class MarketInfoStore extends BaseStore {
     })
   }
 
+  async retry() {
+    await this.loadMarketInfo()
+  }
+
   async loadMarketInfo() {
     const result = await this.executeWithErrorHandling(
       async () => {
@@ -87,9 +88,28 @@ export class MarketInfoStore extends BaseStore {
     }
   }
 
-  async retry() {
-    await this.loadMarketInfo()
-  }
+  // async loadValidatorInfo() {
+  //     const allValidatorAddresses = this.lsuAmounts.map(r => r.validatorAddress)
+
+  //   await this.executeWithErrorHandling(async () => {
+  //     const option: FetchOptions = {
+  //       loadState: true,
+  //       loadResourceDetails: false,
+  //       recursiveFungibleResourceLoading: false,
+  //       recursiveNonFungibleResourceLoading: false,
+  //     }
+
+  //  const res = (await this.weftStateApi.getFetcher().fetchEntityState(allValidatorAddresses, option)).reduce((acc: Record<string, Record<string, string>>, state) => {
+  //   acc[state.$entityAddress] = state.$metadata
+
+  //   return acc
+  //  }, {})
+
+  //  this.validatorMetadata = res
+
+  // //  console.log(res)
+  //   }, 'loadValidatorInfo')
+  // }
 
   // Helper methods to access specific market info
   get loanResourcesByAddress() {
