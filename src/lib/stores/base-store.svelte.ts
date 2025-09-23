@@ -15,6 +15,7 @@ export interface StoreOptions {
 
 export abstract class BaseStore {
   loading = $state(false)
+  initialized = $state(false)
   error: StoreError | null = $state(null)
   lastFetch: Date | null = $state(null)
 
@@ -48,6 +49,8 @@ export abstract class BaseStore {
           : await operation()
 
       this.lastFetch = new Date()
+
+      this.initialized = true
       return result
     }
     catch (error) {

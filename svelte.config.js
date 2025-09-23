@@ -13,6 +13,12 @@ const config = {
       handleUnseenRoutes: 'ignore',
     },
   },
+
+  // compilerOptions: {
+  //   experimental: {
+  //     async: true, // Enable experimental async features
+  //   },
+  // },
 }
 
 export default config

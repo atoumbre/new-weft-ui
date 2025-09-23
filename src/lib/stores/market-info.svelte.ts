@@ -1,4 +1,5 @@
 import type {
+  ClaimNFTCollateral,
   CollateralResource,
   GlobalCollateralService,
   LoanResource,
@@ -23,6 +24,7 @@ export class MarketInfoStore extends BaseStore {
   globalLoanService: Record<LoanService, OperatingStatusValue> | null = $state(null)
   globalCollateralService: GlobalCollateralService | null = $state(null)
   lsuAmounts: LSUCollateral[] = $state([])
+  claimNftCollaterals: ClaimNFTCollateral[] = $state([])
 
   validatorMetadata: Record<string, Record<string, string>> = $state({})
 
@@ -84,7 +86,8 @@ export class MarketInfoStore extends BaseStore {
       this.globalMarketService = result.globalMarketService
       this.globalLoanService = result.globalLoanService
       this.globalCollateralService = result.globalCollateralService
-      this.lsuAmounts = result.lsuAmounts
+      this.lsuAmounts = result.lsuCollaterals
+      this.claimNftCollaterals = result.claimNftCollaterals
     }
   }
 

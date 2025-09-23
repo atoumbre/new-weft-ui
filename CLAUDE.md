@@ -39,12 +39,13 @@ pnpm cf-typegen           # Generate Cloudflare Worker types
 
 The application uses a centralized store system with Svelte 5's new runes syntax:
 
-- **AppStateStore**: Global state coordinator that manages loading states and errors across all stores
-- **RadixToolkitStore**: Wallet connection and Radix network integration
-- **PriceStore**: Resource price data from Radix Gateway API
-- **XRDPriceStore**: XRD price from Pyth Network
-- **MarketInfoStore**: Market configuration and lending pool data
-- **CDPStore**: CDP (Collateralized Debt Position) management
+- **RadixToolkitStore** (`rdt.svelte.ts`): Wallet connection and Radix network integration
+- **PriceStore** (`price-store.svelte.ts`): Resource price data from Radix Gateway API
+- **XRDPriceStore** (`xrd-price-store.svelte.ts`): XRD price from Pyth Network
+- **MarketInfoStore** (`market-info.svelte.ts`): Market configuration and lending pool data
+- **CDPStore** (`cdp-store.svelte.ts`): CDP (Collateralized Debt Position) management
+- **UserAccountsStore** (`user-accounts.svelte.ts`): User account data and management
+- **BaseStore** (`base-store.svelte.ts`): Base store functionality for shared patterns
 
 All stores are initialized in `src/routes/+layout.svelte` and made available via Svelte context.
 

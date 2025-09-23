@@ -1,719 +1,486 @@
 <script lang='ts'>
-  import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
-  import HealthPill from '$lib/components/common/HealthPill.svelte'
-  import ListRow from '$lib/components/common/ListRow.svelte'
-  import Tab from '$lib/components/common/Tab.svelte'
-  import Tabs from '$lib/components/common/Tabs.svelte'
-  import TokenCell from '$lib/components/common/TokenCell.svelte'
+  import type {
+    CollateralizeDebtPositionData,
+    CollateralPositionData,
+    LoanPositionData,
+    NFTCollateralPositionData,
+  } from '$lib/internal_modules/dist'
+  import type { WeftUserAccountData } from '$lib/stores/user-accounts.svelte'
+  import type Decimal from 'decimal.js'
   import CDPForm from '$lib/components/forms/CDPForm.svelte'
-  import { dec } from '$lib/utils/common'
+  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getPriceStore } from '$lib/stores/price-store.svelte'
+  import { getRadixToolkitStore } from '$lib/stores/rdt.svelte'
+  import { getUserAccountsStore } from '$lib/stores/user-accounts.svelte'
+  import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
+  import { dec, fValue } from '$lib/utils/common'
+  import { onMount } from 'svelte'
+  import CDPBorrowedSection from './components/CDPBorrowedSection.svelte'
+  import CDPCollateralSection from './components/CDPCollateralSection.svelte'
+  import CDPEmptyState from './components/CDPEmptyState.svelte'
+  import CDPHeader from './components/CDPHeader.svelte'
+  import CDPOverview from './components/CDPOverview.svelte'
+  import CDPSidebar from './components/CDPSidebar.svelte'
+  import CDPStats from './components/CDPStats.svelte'
 
-  type Collateral = {
-    asset: string
-    amount: string
-    value: string
-    price: string
-    change24h: string | number
-    isPositive: boolean
-    logo: string
-    ltv?: string
-  }
+  const userAccountsStore = getUserAccountsStore()
+  const rdtStore = getRadixToolkitStore()
+  const marketInfoStore = getMarketInfoStore()
+  const priceStore = getPriceStore()
+  const xrdPriceStore = getXRDPriceStore()
 
-  type Loan = {
-    asset: string
-    borrowed: string
-    interestRate: string
-    price: string
-    change24h: string | number
-    isPositive: boolean
-    logo: string
-  }
-
-  type CDP = {
-    id: string
-    collaterals: Collateral[]
-    loans: Loan[]
-    healthRatio: number
-    totalCollateral: string
-    totalDebt: string
-    liquidationPrice: string
-    status: 'healthy' | 'warning' | 'error' | string
-  }
-
-  type AvailableCollateral = {
-    id: string
-    asset: string
-    price: string
-    change24h: string | number
-    isPositive: boolean
-    ltv: string
-    totalSupplied: string
-    logo: string
-  }
-
-  type LoanResource = {
-    id: string
-    asset: string
-    price: string
-    change24h: string | number
-    isPositive: boolean
-    borrowApr: string
-    availableLiquidity: string
-    logo: string
-  }
-
-  const cdpPositions: CDP[] = [
-    {
-      id: 'CDP-001',
-      collaterals: [
-        {
-          asset: 'ETH',
-          amount: '5.0',
-          value: '$12,500',
-          price: '$2,485.67',
-          change24h: '+3.24',
-          isPositive: true,
-          logo: '⟠',
-          ltv: '75%',
-        },
-        {
-          asset: 'WBTC',
-          amount: '0.15',
-          value: '$6,750',
-          price: '$67,234.12',
-          change24h: '-1.85',
-          isPositive: false,
-          logo: '₿',
-          ltv: '70%',
-        },
-      ],
-      loans: [
-        {
-          asset: 'USDC',
-          borrowed: '8,500',
-          interestRate: '5.25',
-          price: '$1.00',
-          change24h: '+0.02',
-          isPositive: true,
-          logo: '💰',
-        },
-        {
-          asset: 'DAI',
-          borrowed: '2,000',
-          interestRate: '4.85',
-          price: '$0.998',
-          change24h: '-0.12',
-          isPositive: false,
-          logo: '🪙',
-        },
-      ],
-      healthRatio: 2.1,
-      totalCollateral: '$19,250',
-      totalDebt: '$10,500',
-      liquidationPrice: '$1,890',
-      status: 'healthy',
-    },
-    {
-      id: 'CDP-002',
-      collaterals: [
-        {
-          asset: 'LINK',
-          amount: '1,200',
-          value: '$18,000',
-          price: '$15.00',
-          change24h: '+2.15',
-          isPositive: true,
-          logo: '🔗',
-          ltv: '65%',
-        },
-      ],
-      loans: [
-        {
-          asset: 'USDT',
-          borrowed: '12,000',
-          interestRate: '6.15',
-          price: '$1.001',
-          change24h: '+0.08',
-          isPositive: true,
-          logo: '💵',
-        },
-      ],
-      healthRatio: 1.45,
-      totalCollateral: '$18,000',
-      totalDebt: '$12,000',
-      liquidationPrice: '$12.50',
-      status: 'warning',
-    },
-    {
-      id: 'CDP-003',
-      collaterals: [
-        {
-          asset: 'MATIC',
-          amount: '15,000',
-          value: '$13,500',
-          price: '$0.90',
-          change24h: '-4.25',
-          isPositive: false,
-          logo: '🔷',
-          ltv: '60%',
-        },
-      ],
-      loans: [
-        {
-          asset: 'DAI',
-          borrowed: '7,200',
-          interestRate: '4.95',
-          price: '$0.998',
-          change24h: '-0.12',
-          isPositive: false,
-          logo: '🪙',
-        },
-      ],
-      healthRatio: 1.85,
-      totalCollateral: '$13,500',
-      totalDebt: '$7,200',
-      liquidationPrice: '$0.65',
-      status: 'healthy',
-    },
-  ]
-
-  const availableCollaterals: AvailableCollateral[] = [
-    {
-      id: 'col1',
-      asset: 'ETH',
-      price: '$2,485.67',
-      change24h: '+3.24',
-      isPositive: true,
-      ltv: '75%',
-      totalSupplied: '$45.2M',
-      logo: '⟠',
-    },
-    {
-      id: 'col2',
-      asset: 'WBTC',
-      price: '$67,234.12',
-      change24h: '-1.85',
-      isPositive: false,
-      ltv: '70%',
-      totalSupplied: '$28.7M',
-      logo: '₿',
-    },
-    {
-      id: 'col3',
-      asset: 'LINK',
-      price: '$15.00',
-      change24h: '+2.15',
-      isPositive: true,
-      ltv: '65%',
-      totalSupplied: '$12.3M',
-      logo: '🔗',
-    },
-    {
-      id: 'col4',
-      asset: 'MATIC',
-      price: '$0.90',
-      change24h: '-4.25',
-      isPositive: false,
-      ltv: '60%',
-      totalSupplied: '$8.9M',
-      logo: '🔷',
-    },
-  ]
-
-  const availableLoanResources: LoanResource[] = [
-    {
-      id: 'loan1',
-      asset: 'USDC',
-      price: '$1.00',
-      change24h: '+0.02',
-      isPositive: true,
-      borrowApr: '5.25%',
-      availableLiquidity: '$2.5M',
-      logo: '💰',
-    },
-    {
-      id: 'loan2',
-      asset: 'USDT',
-      price: '$1.001',
-      change24h: '+0.08',
-      isPositive: true,
-      borrowApr: '6.15%',
-      availableLiquidity: '$1.8M',
-      logo: '💵',
-    },
-    {
-      id: 'loan3',
-      asset: 'DAI',
-      price: '$0.998',
-      change24h: '-0.12',
-      isPositive: false,
-      borrowApr: '4.85%',
-      availableLiquidity: '$2.2M',
-      logo: '🪙',
-    },
-    {
-      id: 'loan4',
-      asset: 'FRAX',
-      price: '$1.002',
-      change24h: '+0.15',
-      isPositive: true,
-      borrowApr: '4.95%',
-      availableLiquidity: '$1.1M',
-      logo: '🏛️',
-    },
-  ]
-
-  let selectedCDP = $state<string>('CDP-001')
-  const currentCDP = $derived.by(() => {
-    const found = cdpPositions.find(c => c.id === selectedCDP)
-    return found
+  onMount(() => {
+    if (marketInfoStore.status === 'not loaded') {
+      marketInfoStore.loadMarketInfo().then(() => {
+        priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+      })
+    }
   })
 
-  let collatTab = $state<'normal' | 'ftw' | 'nftw'>('normal')
-
-  type FtWrapperPos = {
-    id: string
-    wrapper: string
-    shares: number
-    usd: number
-    underlyings: { logo: string, symbol: string }[]
-  }
-
-  const ftWrappersByCdp: Record<string, FtWrapperPos[]> = {
-    'CDP-001': [
-      {
-        id: 'ftw-1',
-        wrapper: 'lpUSDC-DAI',
-        shares: 1250.23456789,
-        usd: 1250.23,
-        underlyings: [
-          { logo: '💰', symbol: 'USDC' },
-          { logo: '🪙', symbol: 'DAI' },
-        ],
-      },
-    ],
-    'CDP-002': [
-      {
-        id: 'ftw-2',
-        wrapper: 'stETH',
-        shares: 2.3456789,
-        usd: 5825.67,
-        underlyings: [{ logo: '⟠', symbol: 'ETH' }],
-      },
-    ],
-    'CDP-003': [],
-  }
-  const ftWrappers = $derived(ftWrappersByCdp[selectedCDP] ?? [])
-
-  type NftWrapperPos = {
-    id: string
-    collection: string
-    count: number
-    usd: number
-    icons: string[]
-  }
-
-  const nftWrappersByCdp: Record<string, NftWrapperPos[]> = {
-    'CDP-001': [
-      {
-        id: 'nftw-1',
-        collection: 'BlueChip Apes',
-        count: 3,
-        usd: 128_500,
-        icons: ['🦍', '🦍', '🦍', '🦍'],
-      },
-    ],
-    'CDP-002': [
-      {
-        id: 'nftw-2',
-        collection: 'Art Blocks',
-        count: 5,
-        usd: 54_200,
-        icons: ['🎨', '🧩', '🖼️', '🖌️', '🖼️'],
-      },
-    ],
-    'CDP-003': [],
-  }
-  const nftWrappers = $derived(nftWrappersByCdp[selectedCDP] ?? [])
-
-  function parseUsdStr(s: string): number {
-    return Number.parseFloat(s.replace(/[$,\s]/g, '')) || 0
-  }
-  function parseUnitsStr(s: string): number {
-    return Number.parseFloat(s.replace(/[,\s]/g, '')) || 0
-  }
+  type ActionType = 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay'
 
   let formOpen = $state(false)
-  let presetType: 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay' | undefined
-    = $state()
+  let presetType: ActionType | undefined = $state()
   let presetAsset: string | undefined = $state()
+  let selectedAccountAddress = $state('')
+  let selectedCdpId = $state('')
 
-  function openCdpForm(
-    type?: 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay',
-    asset?: string,
-  ) {
+  function openCdpForm(type?: ActionType, asset?: string) {
     presetType = type
     presetAsset = asset
     formOpen = true
   }
 
-  const collateralAssets = $derived.by(() => {
-    const map = new Map<string, { symbol: string, logo: string }>()
-    if (currentCDP) {
-      for (const c of currentCDP.collaterals) map.set(c.asset, { symbol: c.asset, logo: c.logo })
+  function shortenAddress(address: string, prefix = 6, suffix = 6): string {
+    if (!address || address.length <= prefix + suffix)
+      return address
+    return `${address.slice(0, prefix)}...${address.slice(-suffix)}`
+  }
+
+  function formatCdpId(id: string): string {
+    if (!id)
+      return ''
+    return id.length > 12 ? `${id.slice(0, 8)}...${id.slice(-4)}` : id
+  }
+
+  function decimalToNumber(value?: Decimal | null): number {
+    if (!value)
+      return 0
+    return value.toNumber()
+  }
+
+  function convertToUsd(value?: Decimal | null): Decimal {
+    if (!value)
+      return dec(0)
+    return value.mul(xrdPriceStore.xrdPrice)
+  }
+
+  function fValueCompact(amount: Decimal): string {
+    const value = amount.toNumber()
+    if (value >= 1000000)
+      return `$${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000)
+      return `$${(value / 1000).toFixed(1)}K`
+    return fValue(amount)
+  }
+
+  let collateralTab = $state<'fungible' | 'nft'>('fungible')
+
+  type AccountOption = {
+    address: string
+    label: string
+    data: WeftUserAccountData
+  }
+
+  const accountOptions = $derived.by((): AccountOption[] => {
+    const walletAccounts = rdtStore.walletData?.accounts ?? []
+    const walletByAddress = new Map(walletAccounts.map(acc => [acc.address, acc]))
+
+    return (userAccountsStore.accounts ?? [])
+      .filter((account): account is WeftUserAccountData => !!account?.address)
+      .map((account) => {
+        const wallet = walletByAddress.get(account.address)
+        const label = (wallet as any)?.label ?? shortenAddress(account.address)
+        return { address: account.address, label, data: account }
+      })
+  })
+
+  $effect(() => {
+    const addresses = accountOptions.map(option => option.address)
+    if (!addresses.length) {
+      if (selectedAccountAddress !== '')
+        selectedAccountAddress = ''
+      return
     }
-    for (const a of availableCollaterals) map.set(a.asset, { symbol: a.asset, logo: a.logo })
-    return Array.from(map.values())
+
+    if (!addresses.includes(selectedAccountAddress)) {
+      const fallback = addresses[0]
+      if (selectedAccountAddress !== fallback)
+        selectedAccountAddress = fallback
+    }
+  })
+
+  const selectedAccountOption = $derived(
+    accountOptions.find(option => option.address === selectedAccountAddress),
+  )
+  const selectedAccount = $derived(selectedAccountOption?.data)
+
+  const cdpList = $derived(
+    (selectedAccount?.cdps ?? []) as CollateralizeDebtPositionData[],
+  )
+
+  $effect(() => {
+    const ids = cdpList.map(cdp => cdp.id)
+    if (!ids.length) {
+      if (selectedCdpId !== '')
+        selectedCdpId = ''
+      return
+    }
+
+    if (!ids.includes(selectedCdpId)) {
+      const fallback = ids[0]
+      if (selectedCdpId !== fallback)
+        selectedCdpId = fallback
+    }
+  })
+
+  const currentCdp = $derived(
+    cdpList.find(cdp => cdp.id === selectedCdpId),
+  )
+
+  const currentCollateralList = $derived.by(() => {
+    if (!currentCdp)
+      return [] as Array<{ address: string, collateral: CollateralPositionData }>
+
+    return Object.entries(currentCdp.collateralPositions ?? {})
+      .map(([address, collateral]) => ({ address, collateral }))
+      .sort((a, b) => b.collateral.value.comparedTo(a.collateral.value))
+  })
+
+  const currentLoanList = $derived.by(() => {
+    if (!currentCdp)
+      return [] as Array<{ address: string, loan: LoanPositionData }>
+
+    return Object.entries(currentCdp.loanPositions ?? {})
+      .map(([address, loan]) => ({ address, loan }))
+      .sort((a, b) => b.loan.value.comparedTo(a.loan.value))
+  })
+
+  const nftCollateralList = $derived.by(() => {
+    if (!currentCdp)
+      return [] as Array<[string, NFTCollateralPositionData]>
+
+    return Object.entries(currentCdp.nftCollateralPositions ?? {}) as Array<
+      [string, NFTCollateralPositionData]
+    >
+  })
+
+  type ResourceMeta = {
+    symbol: string
+    name: string
+    logo: string
+    iconUrl?: string
+    priceUsd: Decimal
+    previousPriceUsd: Decimal
+    changePct: Decimal | null
+    collateralLtv?: Decimal
+    borrowingApr?: Decimal
+  }
+
+  function baseMeta(
+    address: string,
+    metadata?: Record<string, string>,
+  ): Pick<ResourceMeta, 'symbol' | 'name' | 'logo'> {
+    const symbol = metadata?.symbol || metadata?.name || shortenAddress(address)
+    const name = metadata?.name ?? symbol
+    const logo = (metadata?.symbol ?? symbol).slice(0, 3)
+    return { symbol, name, logo }
+  }
+
+  function extractIconUrl(metadata?: Record<string, string>) {
+    if (!metadata)
+      return undefined
+    const keys = ['iconUrl', 'icon_url', 'icon_url_256', 'icon_url_128', 'icon_url_64']
+    for (const key of keys) {
+      const value = metadata[key]
+      if (value)
+        return value
+    }
+    return undefined
+  }
+
+  const resourceMeta = $derived.by(() => {
+    const map = new Map<string, ResourceMeta>()
+
+    const buildPrice = (address: string) => {
+      const { current, previous } = priceStore.getPrice(address)
+      const priceUsd = xrdPriceStore.xrdPrice.mul(current)
+      const previousPriceUsd = xrdPriceStore.xrdPreviousPrice.mul(previous)
+      const changePct = previousPriceUsd.isZero()
+        ? null
+        : priceUsd.sub(previousPriceUsd).div(previousPriceUsd).mul(100)
+      return { priceUsd, previousPriceUsd, changePct }
+    }
+
+    // Base collateral resources
+    marketInfoStore.collateralResources.forEach((resource) => {
+      const base = baseMeta(resource.resourceAddress, resource.metadata)
+      const price = buildPrice(resource.resourceAddress)
+      const iconUrl = extractIconUrl(resource.metadata)
+      map.set(resource.resourceAddress, {
+        ...base,
+        ...price,
+        collateralLtv: resource.riskConfig.loanToValueRatio,
+        iconUrl,
+      })
+    })
+
+    // Base loan resources
+    marketInfoStore.loanResources.forEach((resource) => {
+      const existing = map.get(resource.resourceAddress)
+      const base = existing ?? baseMeta(resource.resourceAddress, resource.metadata)
+      const price = buildPrice(resource.resourceAddress)
+      const iconUrl = extractIconUrl(resource.metadata)
+      map.set(resource.resourceAddress, {
+        ...base,
+        ...price,
+        collateralLtv: existing?.collateralLtv,
+        borrowingApr: resource.lendingPoolState?.borrowingApr,
+        iconUrl: existing?.iconUrl ?? iconUrl,
+      })
+    })
+
+    // Deposit Unit resources (as separate resources)
+    marketInfoStore.loanResources.forEach((resource) => {
+      const pool = resource.lendingPoolState
+      const duAddress = pool?.depositUnitAddress
+      if (!duAddress)
+        return
+      const duMeta = resource.duMetadata
+      const basePrice = buildPrice(resource.resourceAddress).priceUsd
+      const duPriceUsd = pool?.depositUnitPrice ? basePrice.mul(pool.depositUnitPrice) : basePrice
+      const base = baseMeta(duAddress, duMeta)
+      const iconUrl = extractIconUrl(duMeta)
+      map.set(duAddress, {
+        ...base,
+        priceUsd: duPriceUsd,
+        previousPriceUsd: duPriceUsd, // fallback (no 24h for DU)
+        changePct: null,
+        collateralLtv: undefined,
+        borrowingApr: undefined,
+        iconUrl,
+      })
+    })
+
+    // LSU resources
+    marketInfoStore.lsuAmounts.forEach((lsu) => {
+      const base = baseMeta(lsu.resourceAddress, lsu.metadata)
+      const iconUrl = extractIconUrl(lsu.metadata)
+      const priceUsd = xrdPriceStore.xrdPrice.mul(lsu.unitRedemptionValue)
+      map.set(lsu.resourceAddress, {
+        ...base,
+        priceUsd,
+        previousPriceUsd: priceUsd, // fallback same-day value
+        changePct: null,
+        collateralLtv: undefined,
+        borrowingApr: undefined,
+        iconUrl,
+      })
+    })
+
+    return map
+  })
+
+  let priceAddressesKey = ''
+  $effect(() => {
+    const addresses = marketInfoStore.allResourceAddresses ?? []
+    if (!addresses.length)
+      return
+
+    const key = [...addresses].sort().join(',')
+    if (key && key !== priceAddressesKey) {
+      priceAddressesKey = key
+      priceStore.loadPrices(addresses)
+    }
+  })
+
+  const collateralAssets = $derived.by(() => {
+    const seen = new Set<string>()
+    const assets: { symbol: string, logo: string }[] = []
+
+    marketInfoStore.collateralResources.forEach((resource) => {
+      const meta = resourceMeta.get(resource.resourceAddress)
+      const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
+      if (seen.has(symbol))
+        return
+      seen.add(symbol)
+      assets.push({ symbol, logo: meta?.logo ?? symbol.slice(0, 3) })
+    })
+
+    return assets
   })
 
   const debtAssets = $derived.by(() => {
-    const map = new Map<string, { symbol: string, logo: string }>()
-    if (currentCDP) {
-      for (const l of currentCDP.loans) map.set(l.asset, { symbol: l.asset, logo: l.logo })
-    }
-    for (const lr of availableLoanResources) map.set(lr.asset, { symbol: lr.asset, logo: lr.logo })
-    return Array.from(map.values())
+    const seen = new Set<string>()
+    const assets: { symbol: string, logo: string }[] = []
+
+    marketInfoStore.loanResources.forEach((resource) => {
+      const meta = resourceMeta.get(resource.resourceAddress)
+      const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
+      if (seen.has(symbol))
+        return
+      seen.add(symbol)
+      assets.push({ symbol, logo: meta?.logo ?? symbol.slice(0, 3) })
+    })
+
+    return assets
   })
 
   const prices = $derived.by(() => {
-    const p: Record<string, number> = {}
-    if (currentCDP) {
-      for (const c of currentCDP.collaterals) p[c.asset] = parseUsdStr(c.price)
-      for (const l of currentCDP.loans) p[l.asset] = parseUsdStr(l.price)
-    }
-    return p
+    const map: Record<string, number> = {}
+    resourceMeta.forEach((meta) => {
+      if (!meta.symbol || !meta.priceUsd)
+        return
+      if (!(meta.symbol in map))
+        map[meta.symbol] = meta.priceUsd.toNumber()
+    })
+    return map
   })
 
   const ltv = $derived.by(() => {
-    const m: Record<string, number> = {}
-    if (currentCDP) {
-      for (const c of currentCDP.collaterals) {
-        if (c.ltv)
-          m[c.asset] = Number(String(c.ltv).replace(/[%\s]/g, '')) / 100
-      }
-    }
-    return m
+    const map: Record<string, number> = {}
+    marketInfoStore.collateralResources.forEach((resource) => {
+      const meta = resourceMeta.get(resource.resourceAddress)
+      const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
+      map[symbol] = resource.riskConfig.loanToValueRatio.toNumber()
+    })
+    return map
   })
 
   const currentCollateralUSD = $derived.by(() => {
-    const rec: Record<string, number> = {}
-    if (currentCDP) {
-      for (const c of currentCDP.collaterals) rec[c.asset] = parseUnitsStr(c.amount)
-    }
-    return rec
+    const map: Record<string, number> = {}
+    if (!currentCdp)
+      return map
+
+    Object.entries(currentCdp.collateralPositions ?? {}).forEach(([address, collateral]) => {
+      const meta = resourceMeta.get(address)
+      const symbol = meta?.symbol ?? shortenAddress(address)
+      map[symbol] = decimalToNumber(collateral.amount)
+    })
+
+    return map
   })
 
   const currentDebtUSD = $derived.by(() => {
-    const rec: Record<string, number> = {}
-    if (currentCDP) {
-      for (const l of currentCDP.loans) rec[l.asset] = parseUnitsStr(l.borrowed)
-    }
-    return rec
+    const map: Record<string, number> = {}
+    if (!currentCdp)
+      return map
+
+    Object.entries(currentCdp.loanPositions ?? {}).forEach(([address, loan]) => {
+      const meta = resourceMeta.get(address)
+      const symbol = meta?.symbol ?? shortenAddress(address)
+      map[symbol] = decimalToNumber(loan.amount)
+    })
+
+    return map
   })
 
   const balancesCollateral = $derived.by(() => ({ ...currentCollateralUSD }))
   const balancesDebt = $derived.by(() => ({ ...currentDebtUSD }))
+
+  const walletAccountCount = $derived(rdtStore.walletData?.accounts?.length ?? 0)
+
+  const borrowingPower = $derived.by(() => {
+    if (!currentCdp)
+      return dec(0)
+
+    // Borrowing power = discounted collateral value - current loan value
+    const availableBorrowingPower = currentCdp.discountedCollateralValue.sub(currentCdp.totalLoanValue)
+    return availableBorrowingPower.greaterThan(dec(0)) ? availableBorrowingPower : dec(0)
+  })
 </script>
 
 <svelte:head>
   <title>CDP Management - Weft</title>
 </svelte:head>
 
-<div class='container mx-auto space-y-8 px-4 py-8'>
-  <div class='flex items-center justify-between'>
-    <div>
-      <h1 class='mb-2 text-3xl font-bold'>CDP Management</h1>
-      <p class='text-base-content/70'>Manage your collateralized debt positions</p>
-    </div>
-    <button class='btn btn-primary' onclick={() => openCdpForm('add_collateral')}>
-      <svg
-        xmlns='http://www.w3.org/2000/svg'
-        viewBox='0 0 24 24'
-        fill='none'
-        stroke='currentColor'
-        class='mr-2 h-4 w-4'
-      >
-        <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4v16m8-8H4' />
-      </svg>
-      Create New CDP
-    </button>
+<div class='container mx-auto space-y-6 px-4 py-8'>
+  <CDPHeader
+    {selectedAccount}
+    onCreateCDP={() => openCdpForm('add_collateral')}
+  />
+
+  <CDPStats
+    {cdpList}
+    {currentCdp}
+    {convertToUsd}
+  />
+
+  <div class='grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]'>
+    <CDPSidebar
+      {accountOptions}
+      {selectedAccountAddress}
+      {cdpList}
+      {selectedCdpId}
+      userAccountsLoading={userAccountsStore.loading}
+      {walletAccountCount}
+      {formatCdpId}
+      {fValueCompact}
+      {convertToUsd}
+      onAccountChange={address => selectedAccountAddress = address}
+      onCdpSelect={id => selectedCdpId = id}
+    />
+
+    <!-- Main Content -->
+    <section class='space-y-6'>
+      {#if selectedAccount && currentCdp}
+        <CDPOverview
+          {currentCdp}
+          {formatCdpId}
+          {convertToUsd}
+          {borrowingPower}
+        />
+
+        <CDPCollateralSection
+          bind:collateralTab
+          {currentCollateralList}
+          {nftCollateralList}
+          {resourceMeta}
+          {convertToUsd}
+          {shortenAddress}
+          {formatCdpId}
+          onAddCollateral={symbol => openCdpForm('add_collateral', symbol)}
+          onRemoveCollateral={symbol => openCdpForm('remove_collateral', symbol)}
+        />
+
+        <CDPBorrowedSection
+          {currentLoanList}
+          {resourceMeta}
+          {shortenAddress}
+          onBorrow={symbol => openCdpForm('borrow', symbol)}
+          onRepay={symbol => openCdpForm('repay', symbol)}
+        />
+      {:else if selectedAccount && !userAccountsStore.loading}
+        <CDPEmptyState
+          title='No CDPs found for the selected account'
+          subtitle='Create your first CDP to get started'
+        />
+      {:else if userAccountsStore.loading}
+        <CDPEmptyState
+          title='Loading account data...'
+          subtitle=""
+          isLoading={true}
+        />
+      {:else}
+        <CDPEmptyState
+          title='Connect your Radix wallet to manage CDPs'
+          subtitle='Access your collateralized debt positions'
+        />
+      {/if}
+    </section>
   </div>
-
-  <!-- CDP Selector -->
-  <div class='card bg-base-200/60'>
-    <div class='card-body py-3'>
-      <div class='flex items-center gap-3'>
-        <h2 class='m-0 card-title shrink-0'>Your CDPs</h2>
-        <div class='flex-1 overflow-x-auto'>
-          <div class='ml-auto flex w-max items-center justify-end gap-2'>
-            {#each cdpPositions as cdp}
-              <button
-                class={`btn btn-sm ${selectedCDP === cdp.id ? 'btn-active btn-outline' : 'btn-ghost'}`}
-                onclick={() => (selectedCDP = cdp.id)}
-              >
-                <span class='font-medium'>{cdp.id}</span>
-                <span class='ml-2'><HealthPill ltv={dec(cdp.healthRatio)} /></span>
-              </button>
-            {/each}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {#if currentCDP}
-    <div class='space-y-6'>
-      <div class='card-compact card bg-base-200/60'>
-        <div class='card-body py-3'>
-          <div class='flex items-center justify-between'>
-            <h2 class='card-title text-base'>{currentCDP.id} Overview</h2>
-          </div>
-
-          <div class='mt-2 grid grid-cols-2 gap-3 md:grid-cols-4'>
-            <div>
-              <div class='text-sm opacity-70'>Total Collateral</div>
-              <div class='text-lg font-semibold'>{currentCDP.totalCollateral}</div>
-            </div>
-            <div>
-              <div class='text-sm opacity-70'>Total Debt</div>
-              <div class='text-lg font-semibold'>{currentCDP.totalDebt}</div>
-            </div>
-            <div>
-              <div class='text-sm opacity-70'>Liquidation Price</div>
-              <div class='text-lg font-semibold'>{currentCDP.liquidationPrice}</div>
-            </div>
-            <div>
-              <div class='text-sm opacity-70'>Health</div>
-              <div class='text-lg font-semibold'>
-                <HealthPill ltv={dec(currentCDP.healthRatio)} showValue={true} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class='space-y-6'>
-        <div class='card bg-base-200/60'>
-          <div class='card-body'>
-            <div class='flex items-center justify-between'>
-              <h3 class='card-title'>Collaterals</h3>
-              <button class='btn btn-outline btn-sm' onclick={() => openCdpForm('add_collateral')}
-              >Add</button
-              >
-            </div>
-
-            <div class='mt-2'>
-              <Tabs>
-                <Tab id='normal' bind:activeId={collatTab} label='Normal' />
-                <Tab id='ftw' bind:activeId={collatTab} label='Fungible Wrappers' />
-                <Tab id='nftw' bind:activeId={collatTab} label='NFT Wrappers' />
-              </Tabs>
-            </div>
-
-            {#if collatTab === 'normal'}
-              <div class='mt-3 space-y-3'>
-                {#each currentCDP.collaterals as collateral}
-                  <ListRow>
-                    {#snippet left()}
-                      <TokenCell
-                        logo={collateral.logo}
-                        symbol={collateral.asset}
-                        price={collateral.price}
-                        change={collateral.change24h}
-                      />
-                    {/snippet}
-                    {#snippet right()}
-                      <div class='flex items-center gap-6'>
-                        <div class='text-right'>
-                          <AmountDisplay
-                            amount={dec(parseUnitsStr(collateral.amount))}
-                            usd={dec(parseUsdStr(collateral.value))}
-                          />
-                        </div>
-                        <div class='text-right'>
-                          <div class='text-sm opacity-70'>LTV</div>
-                          <div class='font-medium'>{collateral.ltv ?? '-'}</div>
-                        </div>
-                        <div class='flex gap-2'>
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('add_collateral', collateral.asset)}
-                          >Add</button
-                          >
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('remove_collateral', collateral.asset)}
-                          >Remove</button
-                          >
-                        </div>
-                      </div>
-                    {/snippet}
-                  </ListRow>
-                {/each}
-              </div>
-            {:else if collatTab === 'ftw'}
-              <div class='mt-3 space-y-3'>
-                {#each ftWrappers as w}
-                  <ListRow>
-                    {#snippet left()}
-                      <div class='flex items-center gap-3'>
-                        <div class='font-medium'>{w.wrapper}</div>
-                        <div class='badge badge-outline badge-xs'>Wrapper</div>
-                        <div class='flex -space-x-2'>
-                          {#each w.underlyings.slice(0, 4) as u}
-                            <div class='placeholder avatar'>
-                              <div
-                                class='flex h-6 w-6 items-center justify-center rounded-full bg-base-200 text-[10px] ring ring-base-100 ring-offset-1'
-                              >
-                                {u.logo}
-                              </div>
-                            </div>
-                          {/each}
-                          {#if w.underlyings.length > 4}
-                            <div class='placeholder avatar'>
-                              <div
-                                class='flex h-6 w-6 items-center justify-center rounded-full bg-base-300 text-[10px] ring ring-base-100 ring-offset-1'
-                              >
-                                +{w.underlyings.length - 4}
-                              </div>
-                            </div>
-                          {/if}
-                        </div>
-                      </div>
-                    {/snippet}
-                    {#snippet right()}
-                      <div class='flex items-center gap-6'>
-                        <div class='text-right'>
-                          <AmountDisplay amount={dec(w.shares)} usd={dec(w.usd)} />
-                        </div>
-                        <div class='flex gap-2'>
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('add_collateral')}>Add</button
-                          >
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('remove_collateral')}>Remove</button
-                          >
-                          <button class='btn btn-outline btn-sm'>Unwrap</button>
-                        </div>
-                      </div>
-                    {/snippet}
-                  </ListRow>
-                {/each}
-              </div>
-            {:else}
-              <div class='mt-3 space-y-3'>
-                {#each nftWrappers as n}
-                  <ListRow>
-                    {#snippet left()}
-                      <div class='flex items-center gap-3'>
-                        <div class='font-medium'>{n.collection}</div>
-                        <div class='badge badge-outline badge-xs'>NFT Wrapper</div>
-                        <div class='flex -space-x-2'>
-                          {#each n.icons.slice(0, 4) as ic}
-                            <div class='placeholder avatar'>
-                              <div
-                                class='flex h-6 w-6 items-center justify-center rounded-full bg-base-200 text-[10px] ring ring-base-100 ring-offset-1'
-                              >
-                                {ic}
-                              </div>
-                            </div>
-                          {/each}
-                          {#if n.icons.length > 4}
-                            <div class='placeholder avatar'>
-                              <div
-                                class='flex h-6 w-6 items-center justify-center rounded-full bg-base-300 text-[10px] ring ring-base-100 ring-offset-1'
-                              >
-                                +{n.icons.length - 4}
-                              </div>
-                            </div>
-                          {/if}
-                        </div>
-                      </div>
-                    {/snippet}
-                    {#snippet right()}
-                      <div class='flex items-center gap-6'>
-                        <div class='text-right'>
-                          <AmountDisplay amount={dec(n.count)} usd={dec(n.usd)} />
-                        </div>
-                        <div class='flex gap-2'>
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('add_collateral')}>Add</button
-                          >
-                          <button
-                            class='btn btn-outline btn-sm'
-                            onclick={() => openCdpForm('remove_collateral')}>Remove</button
-                          >
-                          <button class='btn btn-outline btn-sm'>Unwrap</button>
-                        </div>
-                      </div>
-                    {/snippet}
-                  </ListRow>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        </div>
-
-        <div class='card-compact card bg-base-200/60'>
-          <div class='card-body py-3'>
-            <div class='flex items-center justify-between'>
-              <h3 class='card-title'>Borrowed Assets</h3>
-              <button class='btn btn-outline btn-sm' onclick={() => openCdpForm('borrow')}
-              >Borrow</button
-              >
-            </div>
-
-            <div class='mt-3 space-y-3'>
-              {#each currentCDP.loans as loan}
-                <ListRow>
-                  {#snippet left()}
-                    <TokenCell
-                      logo={loan.logo}
-                      symbol={loan.asset}
-                      price={loan.price}
-                      change={loan.change24h}
-                    />
-                  {/snippet}
-                  {#snippet right()}
-                    <div class='flex items-center gap-6'>
-                      <div class='text-right'>
-                        <AmountDisplay
-                          amount={dec(parseUnitsStr(loan.borrowed))}
-                          usd={dec(parseUsdStr(loan.price)).mul(dec(parseUnitsStr(loan.borrowed)))}
-                        />
-                      </div>
-                      <div class='text-right'>
-                        <div class='text-sm opacity-70'>Interest</div>
-                        <div class='font-medium text-warning'>{loan.interestRate}</div>
-                      </div>
-                      <div class='flex gap-2'>
-                        <button
-                          class='btn btn-outline btn-sm'
-                          onclick={() => openCdpForm('repay', loan.asset)}>Repay</button
-                        >
-                        <button
-                          class='btn btn-outline btn-sm'
-                          onclick={() => openCdpForm('borrow', loan.asset)}>Borrow</button
-                        >
-                      </div>
-                    </div>
-                  {/snippet}
-                </ListRow>
-              {/each}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {:else}
-    <div class='text-error'>CDP not found</div>
-  {/if}
 </div>
 
-<!-- CDP update modal -->
 <CDPForm
   bind:open={formOpen}
   {presetType}

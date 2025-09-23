@@ -1772,7 +1772,7 @@ var WeftLedgerSateFetcher = class _WeftLedgerSateFetcher {
         });
       }
     });
-    const lsuAmounts = [];
+    const lsuCollaterals = [];
     Object.entries(lendingMarketComponentState?.$fungibleResources.values ?? {}).forEach(([address, data]) => {
       allFungibleResourceAddressesSet.add(address);
       const duIndex = loanResources.findIndex((loanResource) => loanResource.lendingPoolState?.depositUnitAddress === address);
@@ -1795,16 +1795,33 @@ var WeftLedgerSateFetcher = class _WeftLedgerSateFetcher {
             const lsu = {
               resourceAddress: address,
               amount: data.amount,
-              metadata: data.fungibleDetails?.$metadata,
               unitRedemptionValue: dec2(data.fungibleDetails?.$details.native_resource_details?.unit_redemption_value[0]?.amount ?? "0"),
               validatorAddress: data.fungibleDetails?.$details.native_resource_details?.validator_address,
+              metadata: data.fungibleDetails?.$metadata,
               validatorMetadata: {}
-              // resourceDetails: data.fungibleDetails,
             };
-            lsuAmounts.push(lsu);
-            allValidatorAddressesSet.add(data.fungibleDetails?.$details.native_resource_details?.validator_address);
+            lsuCollaterals.push(lsu);
+            allValidatorAddressesSet.add(lsu?.validatorAddress);
           }
         }
+      }
+    });
+    const claimNftCollaterals = [];
+    Object.entries(lendingMarketComponentState?.$nonFungibleResources.values ?? {}).forEach(([address, data]) => {
+      const ids = data.ids ?? [];
+      if (ids.length === 0) {
+        return;
+      }
+      if (data.nonFungibleDetails?.$details.native_resource_details?.kind === "ValidatorClaimNft") {
+        const claimNft = {
+          resourceAddress: address,
+          ids,
+          validatorAddress: data.nonFungibleDetails?.$details.native_resource_details?.validator_address,
+          metadata: data.nonFungibleDetails?.$metadata,
+          validatorMetadata: {}
+        };
+        claimNftCollaterals.push(claimNft);
+        allValidatorAddressesSet.add(claimNft?.validatorAddress);
       }
     });
     const resourceWithoutDetails = collateralResources.filter((resource) => Object.keys(resource.metadata).length === 0).map((resource) => resource.resourceAddress);
@@ -1826,9 +1843,13 @@ var WeftLedgerSateFetcher = class _WeftLedgerSateFetcher {
       }
     });
     res[1].forEach((state) => {
-      const index = lsuAmounts.findIndex((l) => l.validatorAddress === state.$entityAddress);
-      if (index > -1) {
-        lsuAmounts[index].validatorMetadata = state.$metadata;
+      const lsuIndex = lsuCollaterals.findIndex((l) => l.validatorAddress === state.$entityAddress);
+      if (lsuIndex > -1) {
+        lsuCollaterals[lsuIndex].validatorMetadata = state.$metadata;
+      }
+      const claimNftIndex = claimNftCollaterals.findIndex((l) => l.validatorAddress === state.$entityAddress);
+      if (claimNftIndex > -1) {
+        claimNftCollaterals[claimNftIndex].validatorMetadata = state.$metadata;
       }
     });
     const globalMarketService = marketState.marketServiceStatus;
@@ -1851,7 +1872,8 @@ var WeftLedgerSateFetcher = class _WeftLedgerSateFetcher {
       globalLendingService,
       globalLoanService,
       globalCollateralService,
-      lsuAmounts,
+      lsuCollaterals,
+      claimNftCollaterals,
       allFungibleResourceAddresses: [...allFungibleResourceAddressesSet],
       allValidatorAddresses: [...allValidatorAddressesSet]
     };

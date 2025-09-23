@@ -732,6 +732,13 @@ interface LSUCollateral {
     unitRedemptionValue: Decimal;
     validatorAddress: string;
 }
+interface ClaimNFTCollateral {
+    resourceAddress: string;
+    ids: string[];
+    metadata: Record<string, string>;
+    validatorMetadata: Record<string, string>;
+    validatorAddress: string;
+}
 
 interface WeftRadixApiServiceInterface {
     getPrice: (resources: string[] | undefined) => Promise<{
@@ -753,7 +760,8 @@ interface WeftRadixApiServiceInterface {
     getMarketInfos: (edgerStateSelector?: LedgerStateSelector) => Promise<{
         loanResources: LoanResource[];
         collateralResources: CollateralResource[];
-        lsuAmounts: LSUCollateral[];
+        lsuCollaterals: LSUCollateral[];
+        claimNftCollaterals: ClaimNFTCollateral[];
         marketConfig: MarketConfig;
         marketFeeConfig: MarketProtocolFeeConfig;
         globalMarketService: Record<MarketService, OperatingStatusValue>;
@@ -792,7 +800,8 @@ declare class WeftLedgerSateFetcher implements WeftRadixApiServiceInterface {
     getMarketInfos(ledgerStateSelector?: LedgerStateSelector): Promise<{
         loanResources: LoanResource[];
         collateralResources: CollateralResource[];
-        lsuAmounts: LSUCollateral[];
+        lsuCollaterals: LSUCollateral[];
+        claimNftCollaterals: ClaimNFTCollateral[];
         marketConfig: MarketConfig;
         marketFeeConfig: MarketProtocolFeeConfig;
         globalMarketService: Record<MarketService, OperatingStatusValue>;
@@ -895,4 +904,4 @@ declare interface OnLedgerCdpData {
     loans: Record<string, LoanInfo>;
 }
 
-export { type BaseEntityState$1 as BaseEntityState, BaseModel, type BaseNonFungibleData$1 as BaseNonFungibleData, CDP_RESOURCE, type CacheEntry, type CollateralConfig, type CollateralConfigVersion, type CollateralInfo, type CollateralPositionData, type CollateralResource, type CollateralResourceConfig, type CollateralService, type CollateralizeDebtPositionData, ComponentState, type ConfigurationEntry, type ConfigurationManager, type ContributionState, type DepositLimitType, type EfficiencyGroup, type EfficiencyMode, EntityStateFetcher$1 as EntityStateFetcher, EntityStateModel, type EnumTransformerPlugin$1 as EnumTransformerPlugin, type FetchOptions$1 as FetchOptions, type FetchResult, type FungibleResourceCollectionItem$1 as FungibleResourceCollectionItem, FungibleResourceCollectionState$1 as FungibleResourceCollectionState, type FungibleResourceState$1 as FungibleResourceState, type FungibleVaultState$1 as FungibleVaultState, type GlobalCollateralService, InterestStrategy, type IsBreakPoint, type IsolationGroup, KeyValueStore$1 as KeyValueStore, LENDING_MARKET_COLLATERAL_CONFIG_KVS, LENDING_MARKET_COLLATERAL_SERVICE_KVS, LENDING_MARKET_COMPONENT, LENDING_MARKET_EFFICIENT_GROUP_KVS, LENDING_MARKET_LOAN_CONFIG_KVS, LENDING_MARKET_LOAN_SERVICE_KVS, LENDING_MARKET_PRICE_CACHE_KVS, LENDING_MARKET_RES_CONFIG_KVS, LENDING_POOL_COMPONENT, LENDING_POOL_INTEREST_STRATEGY_KVS, LENDING_POOL_RESOURCE_POOL_KVS, LENDING_POOL_SERVICE_KVS, type LSUCollateral, type LendingMarketState, type LendingPoolProtocolFeeConfig, type LendingPoolProxy, type LendingPoolState, type LendingService, type LoanConfig, type LoanInfo, type LoanPositionData, type LoanResource, type LoanResourceConfig, type LoanService, type MarketConfig, type MarketProtocolFeeConfig, type MarketService, type NFTCollateralConfig, type NFTCollateralInfo, type NFTCollateralPositionData, type NFTLiquidationValue, NonFungibleDataModel, type NonFungibleResourceCollectionItem$1 as NonFungibleResourceCollectionItem, NonFungibleResourceCollectionState$1 as NonFungibleResourceCollectionState, type NonFungibleResourceState$1 as NonFungibleResourceState, type NonFungibleVaultState$1 as NonFungibleVaultState, ONE, ONE_HUNDRED, type OnLedgerCdpData, type OperatingStatusValue, PRECISE_ONE, PRECISE_ONE_HUNDRED, PRECISE_ZERO, PROTOCOL_INTEREST_SHARE, type PriceFeed, type RegisteredNFTResourceType, type RegisteredResourceType, type ResourceConfig, ResourceDetailsRepo, type ResourcePoolConfig, type ResourcePoolState, type ResourceState$1 as ResourceState, type ReturnedResourcePoolState, STAKEHOLDER_REWARD_SHARE, type ServiceManager, type TupleTransformerPlugin$1 as TupleTransformerPlugin, WEFT_RESOURCE, WEFT_STAKING_COMPONENT, WeftLedgerSateFetcher, type WeftRadixApiServiceInterface, XUSDC_RESOURCE, ZERO, dec, defaultLendingPools, duToResourceMapping, findIndexes, optionTransformPlugin, resourceToDuMapping, toCamelCase };
+export { type BaseEntityState$1 as BaseEntityState, BaseModel, type BaseNonFungibleData$1 as BaseNonFungibleData, CDP_RESOURCE, type CacheEntry, type ClaimNFTCollateral, type CollateralConfig, type CollateralConfigVersion, type CollateralInfo, type CollateralPositionData, type CollateralResource, type CollateralResourceConfig, type CollateralService, type CollateralizeDebtPositionData, ComponentState, type ConfigurationEntry, type ConfigurationManager, type ContributionState, type DepositLimitType, type EfficiencyGroup, type EfficiencyMode, EntityStateFetcher$1 as EntityStateFetcher, EntityStateModel, type EnumTransformerPlugin$1 as EnumTransformerPlugin, type FetchOptions$1 as FetchOptions, type FetchResult, type FungibleResourceCollectionItem$1 as FungibleResourceCollectionItem, FungibleResourceCollectionState$1 as FungibleResourceCollectionState, type FungibleResourceState$1 as FungibleResourceState, type FungibleVaultState$1 as FungibleVaultState, type GlobalCollateralService, InterestStrategy, type IsBreakPoint, type IsolationGroup, KeyValueStore$1 as KeyValueStore, LENDING_MARKET_COLLATERAL_CONFIG_KVS, LENDING_MARKET_COLLATERAL_SERVICE_KVS, LENDING_MARKET_COMPONENT, LENDING_MARKET_EFFICIENT_GROUP_KVS, LENDING_MARKET_LOAN_CONFIG_KVS, LENDING_MARKET_LOAN_SERVICE_KVS, LENDING_MARKET_PRICE_CACHE_KVS, LENDING_MARKET_RES_CONFIG_KVS, LENDING_POOL_COMPONENT, LENDING_POOL_INTEREST_STRATEGY_KVS, LENDING_POOL_RESOURCE_POOL_KVS, LENDING_POOL_SERVICE_KVS, type LSUCollateral, type LendingMarketState, type LendingPoolProtocolFeeConfig, type LendingPoolProxy, type LendingPoolState, type LendingService, type LoanConfig, type LoanInfo, type LoanPositionData, type LoanResource, type LoanResourceConfig, type LoanService, type MarketConfig, type MarketProtocolFeeConfig, type MarketService, type NFTCollateralConfig, type NFTCollateralInfo, type NFTCollateralPositionData, type NFTLiquidationValue, NonFungibleDataModel, type NonFungibleResourceCollectionItem$1 as NonFungibleResourceCollectionItem, NonFungibleResourceCollectionState$1 as NonFungibleResourceCollectionState, type NonFungibleResourceState$1 as NonFungibleResourceState, type NonFungibleVaultState$1 as NonFungibleVaultState, ONE, ONE_HUNDRED, type OnLedgerCdpData, type OperatingStatusValue, PRECISE_ONE, PRECISE_ONE_HUNDRED, PRECISE_ZERO, PROTOCOL_INTEREST_SHARE, type PriceFeed, type RegisteredNFTResourceType, type RegisteredResourceType, type ResourceConfig, ResourceDetailsRepo, type ResourcePoolConfig, type ResourcePoolState, type ResourceState$1 as ResourceState, type ReturnedResourcePoolState, STAKEHOLDER_REWARD_SHARE, type ServiceManager, type TupleTransformerPlugin$1 as TupleTransformerPlugin, WEFT_RESOURCE, WEFT_STAKING_COMPONENT, WeftLedgerSateFetcher, type WeftRadixApiServiceInterface, XUSDC_RESOURCE, ZERO, dec, defaultLendingPools, duToResourceMapping, findIndexes, optionTransformPlugin, resourceToDuMapping, toCamelCase };

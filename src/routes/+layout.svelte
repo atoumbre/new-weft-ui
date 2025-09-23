@@ -1,9 +1,11 @@
 <script lang='ts'>
+  import RadixConnectButton from '$lib/components/common/RadixConnectButton.svelte'
   import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
   import { setCdpStore } from '$lib/stores/cdp-store.svelte'
   import { setMarketInfoStore } from '$lib/stores/market-info.svelte'
   import { setPriceStore } from '$lib/stores/price-store.svelte'
   import { setRadixToolkitStore } from '$lib/stores/rdt.svelte'
+  import { setUserAccountsStore } from '$lib/stores/user-accounts.svelte'
   import { setXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { GatewayApiClient } from '@radixdlt/babylon-gateway-api-sdk'
   import { onMount } from 'svelte'
@@ -31,7 +33,7 @@
   setCdpStore()
   setPriceStore()
   setMarketInfoStore()
-  setRadixToolkitStore()
+  const accounts = setUserAccountsStore()
 
   onMount(async () => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null
@@ -145,7 +147,7 @@
             </svg>
           </button>
 
-          <!-- <RadixConnectButton /> -->
+          <RadixConnectButton />
         </div>
       </div>
     </div>
@@ -155,3 +157,8 @@
     {@render children?.()}
   </main>
 </div>
+
+rdtStore.walletData
+{rdtStore.walletData?.accounts.map(a => a.address)}
+accounts.accounts
+{accounts.accounts}
