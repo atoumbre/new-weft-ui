@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type Decimal from 'decimal.js'
-  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { dec, fAmount, fValue } from '$lib/utils/common'
 
   type BreakdownItem = {
@@ -21,7 +21,7 @@
     onClose: () => void
   }>()
 
-  const marketInfoStore = getMarketInfoStore()
+  const metadataService = getMetadataService()
 
   const totalValue = $derived(
     items.reduce(
@@ -31,29 +31,7 @@
   )
 
   function findResourceMetadata(resourceAddress: string) {
-    const collateral = marketInfoStore.collateralResources.find(
-      res => res.resourceAddress === resourceAddress,
-    )
-    if (collateral)
-      return collateral.metadata
-
-    const loan = marketInfoStore.loanResources.find(
-      res => res.resourceAddress === resourceAddress,
-    )
-    if (loan)
-      return loan.metadata
-
-    const depositUnit = marketInfoStore.loanResources.find(
-      res => res.lendingPoolState?.depositUnitAddress === resourceAddress,
-    )
-    if (depositUnit)
-      return depositUnit.duMetadata
-
-    const lsu = marketInfoStore.lsuAmounts.find(res => res.resourceAddress === resourceAddress)
-    if (lsu)
-      return { ...lsu.validatorMetadata, name: `LSU ${lsu.validatorMetadata.name}` }
-
-    return null
+    return metadataService.resourceInfoState.get(resourceAddress)?.metadata ?? {}
   }
 
   function getIcon(resourceAddress: string) {

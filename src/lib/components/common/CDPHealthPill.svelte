@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
+  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
   import { inEfficiency } from '$lib/stores/cdp-store.svelte'
   import { resolveCdpHealthDefinition } from '$lib/utils/health'
 

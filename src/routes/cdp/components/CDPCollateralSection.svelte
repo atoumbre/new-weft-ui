@@ -1,46 +1,53 @@
 <script lang='ts'>
-  import type { CollateralPositionData, NFTCollateralPositionData } from '$lib/internal_modules/dist'
+  import type { CollateralPositionData, NFTCollateralPositionData } from '$lib/internal_modules/weft-ledger-state'
+
   import type Decimal from 'decimal.js'
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
+  import AssetCard from '$lib/components/common/AssetCard.svelte'
   import ListRow from '$lib/components/common/ListRow.svelte'
   import Tab from '$lib/components/common/Tab.svelte'
   import Tabs from '$lib/components/common/Tabs.svelte'
-  import TokenCell from '$lib/components/common/TokenCell.svelte'
-  import { fPercent, fValue } from '$lib/utils/common'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
+  import { getPriceStore } from '$lib/stores/price-store.svelte'
+  import { dec } from '$lib/utils/common'
+  import CDPCollateralCard from './CDPCollateralCard.svelte'
 
-  type ResourceMeta = {
-    symbol: string
-    name: string
-    logo: string
-    iconUrl?: string
-    priceUsd: Decimal
-    previousPriceUsd: Decimal
-    changePct: Decimal | null
-    collateralLtv?: Decimal
-    borrowingApr?: Decimal
-  }
+  // type ResourceMeta = {
+  //   symbol: string
+  //   name: string
+  //   logo: string
+  //   iconUrl?: string
+  //   priceUsd: Decimal
+  //   previousPriceUsd: Decimal
+  //   collateralLtv?: Decimal
+  //   borrowingApr?: Decimal
+  // }
+
+  const metadataService = getMetadataService()
+  const priceStore = getPriceStore()
 
   let {
     collateralTab = $bindable('fungible' as 'fungible' | 'nft'),
     currentCollateralList,
     nftCollateralList,
-    resourceMeta,
+    // resourceMeta,
     convertToUsd,
     shortenAddress,
     formatCdpId,
     onAddCollateral,
     onRemoveCollateral,
-  } = $props<{
+  }: {
     collateralTab: 'fungible' | 'nft'
     currentCollateralList: Array<{ address: string, collateral: CollateralPositionData }>
     nftCollateralList: Array<[string, NFTCollateralPositionData]>
-    resourceMeta: Map<string, ResourceMeta>
+    // resourceMeta: Map<string, ResourceMeta>
     convertToUsd: (value?: Decimal | null) => Decimal
     shortenAddress: (address: string, prefix?: number, suffix?: number) => string
     formatCdpId: (id: string) => string
     onAddCollateral: (symbol?: string) => void
     onRemoveCollateral: (symbol?: string) => void
-  }>()
+  } = $props()
+
 </script>
 
 <div class='card bg-base-200/60'>
@@ -64,46 +71,8 @@
       {#if currentCollateralList.length}
         <div class='space-y-3'>
           {#each currentCollateralList as { address, collateral }}
-            {@const meta = resourceMeta.get(address)}
-            <ListRow>
-              {#snippet left()}
-                <TokenCell
-                  logo={meta?.logo}
-                  iconUrl={meta?.iconUrl}
-                  symbol={meta?.symbol ?? shortenAddress(address)}
-                  price={meta ? fValue(meta.priceUsd) : undefined}
-                  change={meta?.changePct ? meta.changePct.toFixed(2) : undefined}
-                />
-              {/snippet}
-              {#snippet right()}
-                <div class='flex flex-wrap items-center justify-end gap-4 sm:gap-6'>
-                  <AmountDisplay
-                    amount={collateral.amount}
-                    usd={convertToUsd(collateral.value)}
-                  />
-                  <div class='text-right'>
-                    <div class='text-sm opacity-70'>Max LTV</div>
-                    <div class='font-medium text-info'>
-                      {meta?.collateralLtv ? fPercent(meta.collateralLtv) : '—'}
-                    </div>
-                  </div>
-                  <div class='flex gap-2'>
-                    <button
-                      class='btn btn-outline btn-sm'
-                      onclick={() => onAddCollateral(meta?.symbol)}
-                    >
-                      Add
-                    </button>
-                    <button
-                      class='btn btn-outline btn-sm'
-                      onclick={() => onRemoveCollateral(meta?.symbol)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              {/snippet}
-            </ListRow>
+
+            <CDPCollateralCard resourceAddress={address} positionData={collateral} {onAddCollateral} {onRemoveCollateral}></CDPCollateralCard>
           {/each}
         </div>
       {:else}
@@ -119,16 +88,16 @@
             <div class='rounded border border-base-300 bg-base-100/60 p-3'>
               <div class='font-mono text-sm text-primary'>Wrapper: {formatCdpId(wrapperId)}</div>
               <div class='mt-2 space-y-2'>
-                {#each Object.entries(nft.underlyingPositions || {}) as [resourceAddress, collateral]}
-                  {@const meta = resourceMeta.get(resourceAddress)}
+                {#each Object.entries(nft.underlyingPositions || {}) as [address, collateral]}
+                  {@const meta = metadataService.getResourceFromCache(address)}
+                  {@const price = priceStore.buildPrice(address)}
                   <ListRow>
                     {#snippet left()}
-                      <TokenCell
-                        logo={meta?.logo}
-                        iconUrl={meta?.iconUrl}
-                        symbol={meta?.symbol ?? shortenAddress(resourceAddress)}
-                        price={meta ? fValue(meta.priceUsd) : undefined}
-                        change={meta?.changePct ? meta.changePct.toFixed(2) : undefined}
+                      <AssetCard
+                        iconUrl={meta?.metadata.iconUrl}
+                        symbol={meta?.metadata.symbol ?? shortenAddress(address)}
+                        priceUsd={price?.priceUsd ?? dec(0)}
+                        previousPriceUsd={price?.previousPriceUsd ?? dec(0)}
                       />
                     {/snippet}
                     {#snippet right()}

@@ -4,11 +4,12 @@
     CollateralPositionData,
     LoanPositionData,
     NFTCollateralPositionData,
-  } from '$lib/internal_modules/dist'
+  } from '$lib/internal_modules/weft-ledger-state'
   import type { WeftUserAccountData } from '$lib/stores/user-accounts.svelte'
   import type Decimal from 'decimal.js'
   import CDPForm from '$lib/components/forms/CDPForm.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getRadixToolkitStore } from '$lib/stores/rdt.svelte'
   import { getUserAccountsStore } from '$lib/stores/user-accounts.svelte'
@@ -28,11 +29,12 @@
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
+  const metadataService = getMetadataService()
 
   onMount(() => {
     if (marketInfoStore.status === 'not loaded') {
       marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
       })
     }
   })
@@ -175,125 +177,130 @@
     >
   })
 
-  type ResourceMeta = {
-    symbol: string
-    name: string
-    logo: string
-    iconUrl?: string
-    priceUsd: Decimal
-    previousPriceUsd: Decimal
-    changePct: Decimal | null
-    collateralLtv?: Decimal
-    borrowingApr?: Decimal
-  }
+  // type ResourceMeta = {
+  //   symbol: string
+  //   name: string
+  //   logo: string
+  //   iconUrl?: string
+  //   priceUsd: Decimal
+  //   previousPriceUsd: Decimal
+  //   changePct: Decimal | null
+  //   collateralLtv?: Decimal
+  //   borrowingApr?: Decimal
+  // }
 
-  function baseMeta(
-    address: string,
-    metadata?: Record<string, string>,
-  ): Pick<ResourceMeta, 'symbol' | 'name' | 'logo'> {
-    const symbol = metadata?.symbol || metadata?.name || shortenAddress(address)
-    const name = metadata?.name ?? symbol
-    const logo = (metadata?.symbol ?? symbol).slice(0, 3)
-    return { symbol, name, logo }
-  }
+  // function extractIconUrl(metadata?: Record<string, string>) {
+  //   if (!metadata)
+  //     return undefined
+  //   const keys = ['iconUrl', 'icon_url', 'icon_url_256', 'icon_url_128', 'icon_url_64']
+  //   for (const key of keys) {
+  //     const value = metadata[key]
+  //     if (value)
+  //       return value
+  //   }
+  //   return undefined
+  // }
 
-  function extractIconUrl(metadata?: Record<string, string>) {
-    if (!metadata)
-      return undefined
-    const keys = ['iconUrl', 'icon_url', 'icon_url_256', 'icon_url_128', 'icon_url_64']
-    for (const key of keys) {
-      const value = metadata[key]
-      if (value)
-        return value
-    }
-    return undefined
-  }
+  // const baseMeta = (
+  //   address: string,
+  //   metadata?: Record<string, string>,
+  // ): Pick<ResourceMeta, 'symbol' | 'name' | 'logo'> => {
+  //   const symbol = metadata?.symbol || metadata?.name || shortenAddress(address)
+  //   const name = metadata?.name ?? symbol
+  //   const logo = (metadata?.symbol ?? symbol).slice(0, 3)
+  //   return { symbol, name, logo }
+  // }
 
-  const resourceMeta = $derived.by(() => {
-    const map = new Map<string, ResourceMeta>()
+  // const buildPrice = (address: string) => {
+  //   const { current, previous } = priceStore.getPrice(address)
+  //   const priceUsd = xrdPriceStore.xrdPrice.mul(current)
+  //   const previousPriceUsd = xrdPriceStore.xrdPreviousPrice.mul(previous)
+  //   const changePct = previousPriceUsd.isZero()
+  //     ? null
+  //     : priceUsd.sub(previousPriceUsd).div(previousPriceUsd).mul(100)
+  //   return { priceUsd, previousPriceUsd, changePct }
+  // }
 
-    const buildPrice = (address: string) => {
-      const { current, previous } = priceStore.getPrice(address)
-      const priceUsd = xrdPriceStore.xrdPrice.mul(current)
-      const previousPriceUsd = xrdPriceStore.xrdPreviousPrice.mul(previous)
-      const changePct = previousPriceUsd.isZero()
-        ? null
-        : priceUsd.sub(previousPriceUsd).div(previousPriceUsd).mul(100)
-      return { priceUsd, previousPriceUsd, changePct }
-    }
+  // const resourceMeta = $derived.by(() => {
+  //   const map = new Map<string, ResourceMeta>()
 
-    // Base collateral resources
-    marketInfoStore.collateralResources.forEach((resource) => {
-      const base = baseMeta(resource.resourceAddress, resource.metadata)
-      const price = buildPrice(resource.resourceAddress)
-      const iconUrl = extractIconUrl(resource.metadata)
-      map.set(resource.resourceAddress, {
-        ...base,
-        ...price,
-        collateralLtv: resource.riskConfig.loanToValueRatio,
-        iconUrl,
-      })
-    })
+  //   // Base collateral resources
+  //   marketInfoStore.collateralResources.forEach((resource) => {
+  //     const metadata = metadataService.resourceInfoState.get(resource?.resourceAddress)?.metadata
 
-    // Base loan resources
-    marketInfoStore.loanResources.forEach((resource) => {
-      const existing = map.get(resource.resourceAddress)
-      const base = existing ?? baseMeta(resource.resourceAddress, resource.metadata)
-      const price = buildPrice(resource.resourceAddress)
-      const iconUrl = extractIconUrl(resource.metadata)
-      map.set(resource.resourceAddress, {
-        ...base,
-        ...price,
-        collateralLtv: existing?.collateralLtv,
-        borrowingApr: resource.lendingPoolState?.borrowingApr,
-        iconUrl: existing?.iconUrl ?? iconUrl,
-      })
-    })
+  //     const base = baseMeta(resource.resourceAddress, metadata)
+  //     const price = buildPrice(resource.resourceAddress)
+  //     const iconUrl = extractIconUrl(metadata)
+  //     map.set(resource.resourceAddress, {
+  //       ...base,
+  //       ...price,
+  //       collateralLtv: resource.riskConfig.loanToValueRatio,
+  //       iconUrl,
+  //     })
+  //   })
 
-    // Deposit Unit resources (as separate resources)
-    marketInfoStore.loanResources.forEach((resource) => {
-      const pool = resource.lendingPoolState
-      const duAddress = pool?.depositUnitAddress
-      if (!duAddress)
-        return
-      const duMeta = resource.duMetadata
-      const basePrice = buildPrice(resource.resourceAddress).priceUsd
-      const duPriceUsd = pool?.depositUnitPrice ? basePrice.mul(pool.depositUnitPrice) : basePrice
-      const base = baseMeta(duAddress, duMeta)
-      const iconUrl = extractIconUrl(duMeta)
-      map.set(duAddress, {
-        ...base,
-        priceUsd: duPriceUsd,
-        previousPriceUsd: duPriceUsd, // fallback (no 24h for DU)
-        changePct: null,
-        collateralLtv: undefined,
-        borrowingApr: undefined,
-        iconUrl,
-      })
-    })
+  //   // Base loan resources
+  //   marketInfoStore.loanResources.forEach((resource) => {
+  //     const metadata = metadataService.resourceInfoState.get(resource?.resourceAddress)?.metadata
 
-    // LSU resources
-    marketInfoStore.lsuAmounts.forEach((lsu) => {
-      const base = baseMeta(lsu.resourceAddress, lsu.metadata)
-      const iconUrl = extractIconUrl(lsu.metadata)
-      const priceUsd = xrdPriceStore.xrdPrice.mul(lsu.unitRedemptionValue)
-      map.set(lsu.resourceAddress, {
-        ...base,
-        priceUsd,
-        previousPriceUsd: priceUsd, // fallback same-day value
-        changePct: null,
-        collateralLtv: undefined,
-        borrowingApr: undefined,
-        iconUrl,
-      })
-    })
+  //     const existing = map.get(resource.resourceAddress)
+  //     const base = existing ?? baseMeta(resource.resourceAddress, metadata)
+  //     const price = buildPrice(resource.resourceAddress)
+  //     const iconUrl = extractIconUrl(metadata)
+  //     map.set(resource.resourceAddress, {
+  //       ...base,
+  //       ...price,
+  //       collateralLtv: existing?.collateralLtv,
+  //       borrowingApr: resource.lendingPoolState?.borrowingApr,
+  //       iconUrl: existing?.iconUrl ?? iconUrl,
+  //     })
+  //   })
 
-    return map
-  })
+  //   // Deposit Unit resources (as separate resources)
+  //   marketInfoStore.loanResources.forEach((resource) => {
+  //     const pool = resource.lendingPoolState
+  //     const duAddress = pool?.depositUnitAddress
+  //     if (!duAddress)
+  //       return
+  //     const duMeta = metadataService.resourceInfoState.get(resource?.resourceAddress)?.metadata
+
+  //     const basePrice = buildPrice(resource.resourceAddress).priceUsd
+  //     const duPriceUsd = pool?.depositUnitPrice ? basePrice.mul(pool.depositUnitPrice) : basePrice
+  //     const base = baseMeta(duAddress, duMeta)
+  //     const iconUrl = extractIconUrl(duMeta)
+  //     map.set(duAddress, {
+  //       ...base,
+  //       priceUsd: duPriceUsd,
+  //       previousPriceUsd: duPriceUsd, // fallback (no 24h for DU)
+  //       changePct: null,
+  //       collateralLtv: undefined,
+  //       borrowingApr: undefined,
+  //       iconUrl,
+  //     })
+  //   })
+
+  //   // LSU resources
+  //   marketInfoStore.lsuAmounts.forEach((lsu) => {
+  //     const base = baseMeta(lsu.resourceAddress, lsu.metadata)
+  //     const iconUrl = extractIconUrl(lsu.metadata)
+  //     const priceUsd = xrdPriceStore.xrdPrice.mul(lsu.unitRedemptionValue)
+  //     map.set(lsu.resourceAddress, {
+  //       ...base,
+  //       priceUsd,
+  //       previousPriceUsd: priceUsd, // fallback same-day value
+  //       changePct: null,
+  //       collateralLtv: undefined,
+  //       borrowingApr: undefined,
+  //       iconUrl,
+  //     })
+  //   })
+
+  //   return map
+  // })
 
   let priceAddressesKey = ''
   $effect(() => {
-    const addresses = marketInfoStore.allResourceAddresses ?? []
+    const addresses = marketInfoStore.allResourceAddressesWithPrice ?? []
     if (!addresses.length)
       return
 
@@ -309,7 +316,7 @@
     const assets: { symbol: string, logo: string }[] = []
 
     marketInfoStore.collateralResources.forEach((resource) => {
-      const meta = resourceMeta.get(resource.resourceAddress)
+      const meta = metadataService.resourceInfoState.get(resource.resourceAddress)?.metadata ?? {}
       const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
       if (seen.has(symbol))
         return
@@ -325,7 +332,7 @@
     const assets: { symbol: string, logo: string }[] = []
 
     marketInfoStore.loanResources.forEach((resource) => {
-      const meta = resourceMeta.get(resource.resourceAddress)
+      const meta = metadataService.resourceInfoState.get(resource.resourceAddress)?.metadata ?? {}
       const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
       if (seen.has(symbol))
         return
@@ -336,21 +343,22 @@
     return assets
   })
 
-  const prices = $derived.by(() => {
-    const map: Record<string, number> = {}
-    resourceMeta.forEach((meta) => {
-      if (!meta.symbol || !meta.priceUsd)
-        return
-      if (!(meta.symbol in map))
-        map[meta.symbol] = meta.priceUsd.toNumber()
-    })
-    return map
-  })
+  // const prices = $derived.by(() => {
+  //   const map: Record<string, number> = {}
+  //   resourceMeta.forEach((meta) => {
+  //     if (!meta.symbol || !meta.priceUsd)
+  //       return
+  //     if (!(meta.symbol in map))
+  //       map[meta.symbol] = meta.priceUsd.toNumber()
+  //   })
+  //   return map
+  // })
 
   const ltv = $derived.by(() => {
     const map: Record<string, number> = {}
     marketInfoStore.collateralResources.forEach((resource) => {
-      const meta = resourceMeta.get(resource.resourceAddress)
+      const meta = metadataService.resourceInfoState.get(resource.resourceAddress)?.metadata ?? {}
+
       const symbol = meta?.symbol ?? shortenAddress(resource.resourceAddress)
       map[symbol] = resource.riskConfig.loanToValueRatio.toNumber()
     })
@@ -363,7 +371,8 @@
       return map
 
     Object.entries(currentCdp.collateralPositions ?? {}).forEach(([address, collateral]) => {
-      const meta = resourceMeta.get(address)
+      const meta = metadataService.resourceInfoState.get(address)?.metadata ?? {}
+
       const symbol = meta?.symbol ?? shortenAddress(address)
       map[symbol] = decimalToNumber(collateral.amount)
     })
@@ -377,7 +386,8 @@
       return map
 
     Object.entries(currentCdp.loanPositions ?? {}).forEach(([address, loan]) => {
-      const meta = resourceMeta.get(address)
+      const meta = metadataService.resourceInfoState.get(address)?.metadata ?? {}
+
       const symbol = meta?.symbol ?? shortenAddress(address)
       map[symbol] = decimalToNumber(loan.amount)
     })
@@ -445,7 +455,6 @@
           bind:collateralTab
           {currentCollateralList}
           {nftCollateralList}
-          {resourceMeta}
           {convertToUsd}
           {shortenAddress}
           {formatCdpId}
@@ -455,8 +464,6 @@
 
         <CDPBorrowedSection
           {currentLoanList}
-          {resourceMeta}
-          {shortenAddress}
           onBorrow={symbol => openCdpForm('borrow', symbol)}
           onRepay={symbol => openCdpForm('repay', symbol)}
         />
@@ -487,7 +494,6 @@
   {presetAsset}
   {collateralAssets}
   {debtAssets}
-  {prices}
   {ltv}
   currentCollateral={currentCollateralUSD}
   currentDebt={currentDebtUSD}
@@ -495,3 +501,6 @@
   {balancesDebt}
   on:submit={() => (formOpen = false)}
 />
+
+{JSON.stringify(selectedAccount)}
+{currentCdp?.healthLtv}

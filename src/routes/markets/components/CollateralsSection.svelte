@@ -1,12 +1,14 @@
 <script lang='ts'>
-  import type { CollateralResource } from '$lib/internal_modules/dist'
+  import type { CollateralResource } from '$lib/internal_modules/weft-ledger-state'
   import type Decimal from 'decimal.js'
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import AssetCard from '$lib/components/common/AssetCard.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMarketResourceStore } from '$lib/stores/market-resource.svelte'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
-  import { fPercent } from '$lib/utils/common'
+  import { dec, fPercent } from '$lib/utils/common'
 
   type AvailableCollateral = {
     id: string
@@ -29,6 +31,8 @@
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
+  const marketResource = getMarketResourceStore()
+  const metadataService = getMetadataService()
 
   function transformCollateralData(collateralResource: CollateralResource): AvailableCollateral {
     const { current: priceInXRD, previous: previousPriceInXRD } = priceStore.getPrice(
@@ -39,7 +43,9 @@
 
     // Get token symbol from resource info or default
 
-    const metadata = collateralResource?.metadata
+    // const metadata = collateralResource?.metadata
+
+    const metadata = metadataService.resourceInfoState.get(collateralResource?.resourceAddress)?.metadata
 
     const symbol
       = metadata?.symbol
@@ -48,9 +54,17 @@
 
     const iconUrl = metadata?.iconUrl
 
+    const collateralResourceInfo = marketResource.resourceInfo.fungibleResources.find(c => c.resourceAddress === collateralResource.resourceAddress)
+    const totalDeposit = collateralResourceInfo?.amount ?? dec(0)
+    const duResourceAddress = marketInfoStore.loanResources.find(c => c.resourceAddress === collateralResource.resourceAddress)?.lendingPoolState?.depositUnitAddress
+    const totalDepositUnderDU = (duResourceAddress)
+      ? marketResource.resourceInfo.fungibleResources.find(c => c.resourceAddress === duResourceAddress)?.amount ?? dec(0)
+      : dec(0)
+
     // Calculate total supplied USD value using the totalDeposit from CollateralResource
-    const totalSuppliedDirectUsd = collateralResource.totalDeposit.mul(priceInUSD)
-    const totalSuppliedWrappedUsd = collateralResource.totalDepositUnderDU.mul(priceInUSD)
+
+    const totalSuppliedDirectUsd = totalDeposit.mul(priceInUSD)
+    const totalSuppliedWrappedUsd = totalDepositUnderDU.mul(priceInUSD)
 
     // Use the correct property path: riskConfig contains the CollateralConfig
     const riskConfig = collateralResource.riskConfig
@@ -64,11 +78,11 @@
       ltv: riskConfig.loanToValueRatio,
       liquidationLtv: riskConfig.loanToValueRatio.add(riskConfig.liquidationThresholdSpread),
       liquidationPenalty: riskConfig.liquidationBonusRate,
-      totalSuppliedDirect: collateralResource.totalDeposit,
+      totalSuppliedDirect: totalDeposit,
       totalSuppliedDirectUsd,
-      totalSuppliedWrapped: collateralResource.totalDepositUnderDU,
+      totalSuppliedWrapped: totalDepositUnderDU,
       totalSuppliedWrappedUsd,
-      totalSupplied: collateralResource.totalDeposit.add(collateralResource.totalDepositUnderDU),
+      totalSupplied: totalDeposit.add(totalDepositUnderDU),
       totalSuppliedUsd: totalSuppliedDirectUsd.add(totalSuppliedWrappedUsd),
       logo: iconUrl,
     }
@@ -84,7 +98,6 @@
   })
 </script>
 
-<!-- <div class='card bg-base-200/60'> -->
 <div class='card-body'>
   <div class='flex items-center justify-between'>
     <h2 class='card-title'>Collaterals</h2>
@@ -161,4 +174,3 @@
     </table>
   </div>
 </div>
-<!-- </div> -->

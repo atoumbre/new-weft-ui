@@ -48,10 +48,10 @@ export function fPercent(input: Decimal | undefined) {
   const amount = input ?? dec(0)
 
   // numerable accepts string input; avoid Decimal -> number conversion
-  let result = format(amount.toFixed(10), '0,0.00%')
-  const defaultFormat = format('0', '0,0.00%')
+  let result = format(amount.toFixed(10), '0,0.0%')
+  const formattedZero = format('0', '0,0.0%')
 
-  if (result === defaultFormat && amount.abs().gt(0)) {
+  if (result === formattedZero && amount.abs().gt(0)) {
     result = `~${result}`
   }
 

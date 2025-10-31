@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
+  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
   import type Decimal from 'decimal.js'
   import { getCdpStore, inEfficiency } from '$lib/stores/cdp-store.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
@@ -278,7 +278,7 @@
   onMount(() => {
     if (marketInfoStore.status === 'not loaded') {
       marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
       })
     }
 

@@ -20,6 +20,7 @@ export abstract class BaseStore {
   lastFetch: Date | null = $state(null)
 
   protected options: Required<StoreOptions>
+  protected pendingRequests: Map<string, Promise<any>> = new Map()
 
   constructor(options: StoreOptions = {}) {
     this.options = {
@@ -33,42 +34,55 @@ export abstract class BaseStore {
 
   /**
    * Execute an async operation with consistent error handling and retry logic
+   * Includes request deduplication to prevent concurrent duplicate requests
    */
   protected async executeWithErrorHandling<T>(
     operation: () => Promise<T>,
     operationName: string,
     retryable = true,
   ): Promise<T | null> {
+    // Check if there's already a pending request for this operation
+    const pendingRequest = this.pendingRequests.get(operationName)
+    if (pendingRequest) {
+      return pendingRequest as Promise<T>
+    }
+
     this.loading = true
     this.clearError()
 
-    try {
-      const result
-        = retryable && this.options.autoRetry
-          ? await this.withRetry(operation, this.options.maxRetries, operationName)
-          : await operation()
+    const requestPromise = (async () => {
+      try {
+        const result
+          = retryable && this.options.autoRetry
+            ? await this.withRetry(operation, this.options.maxRetries, operationName)
+            : await operation()
 
-      this.lastFetch = new Date()
+        this.lastFetch = new Date()
 
-      this.initialized = true
-      return result
-    }
-    catch (error) {
-      const storeError: StoreError = {
-        code: this.getErrorCode(error),
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        timestamp: new Date(),
-        retryable: retryable && this.isRetryableError(error),
-        originalError: error instanceof Error ? error : undefined,
+        this.initialized = true
+        return result
       }
+      catch (error) {
+        const storeError: StoreError = {
+          code: this.getErrorCode(error),
+          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          timestamp: new Date(),
+          retryable: retryable && this.isRetryableError(error),
+          originalError: error instanceof Error ? error : undefined,
+        }
 
-      this.error = storeError
-      console.error(`Store operation failed [${operationName}]:`, storeError)
-      return null
-    }
-    finally {
-      this.loading = false
-    }
+        this.error = storeError
+        console.error(`Store operation failed [${operationName}]:`, storeError)
+        return null
+      }
+      finally {
+        this.loading = false
+        this.pendingRequests.delete(operationName)
+      }
+    })()
+
+    this.pendingRequests.set(operationName, requestPromise)
+    return requestPromise
   }
 
   /**

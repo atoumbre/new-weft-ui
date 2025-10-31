@@ -1,8 +1,11 @@
 import type { LedgerStateSelector } from '@radixdlt/babylon-gateway-api-sdk'
 import type Decimal from 'decimal.js'
-import { dec, WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
+import type { XRDPriceStore } from './xrd-price-store.svelte'
+import { WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
+import { dec } from '$lib/utils/common'
 import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
+import { getXRDPriceStore } from './xrd-price-store.svelte'
 
 interface Prices {
   current: Decimal
@@ -19,6 +22,7 @@ export class PriceStore extends BaseStore {
   lastRequestedAddresses: string[] = []
 
   weftStateApi: WeftLedgerSateFetcher
+  private xrdPriceStore: XRDPriceStore
 
   constructor() {
     super({
@@ -29,16 +33,19 @@ export class PriceStore extends BaseStore {
     })
 
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
+        this.xrdPriceStore = getXRDPriceStore()
 
-    this.updaterTimer = setInterval(
-      () => {
-        if (this.lastRequestedAddresses.length === 0)
-          return
+    if (typeof window !== 'undefined') {
+      this.updaterTimer = setInterval(
+        () => {
+          if (this.lastRequestedAddresses.length === 0)
+            return
 
-        void this.loadPrices()
-      },
-      15 * 60 * 1000,
-    )
+          void this.loadPrices()
+        },
+        15 * 60 * 1000,
+      )
+    }
 
     onDestroy(() => {
       if (this.updaterTimer)
@@ -46,7 +53,10 @@ export class PriceStore extends BaseStore {
     })
   }
 
-  async loadPrices(addresses: string[] = []) {
+  async loadPrices(addresses: string[] = [], force = false) {
+    if (this.loading)
+      return
+
     const existingAddresses = Object.keys(this.prices)
     const baseAddresses = addresses.length > 0 ? addresses : this.lastRequestedAddresses
     const mergedAddresses = [
@@ -58,13 +68,16 @@ export class PriceStore extends BaseStore {
 
     this.lastRequestedAddresses = mergedAddresses
 
+    if (!force && this.isDataFresh() && mergedAddresses.every(addr => !!this.prices[addr]))
+      return
+
     await this.executeWithErrorHandling(async () => {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
       const ledgerStateSelector: LedgerStateSelector = { timestamp: yesterday }
 
       const [prices, yesterdayPrices] = await Promise.all([
         this.weftStateApi.getPrice(mergedAddresses),
-        this.weftStateApi.getPriceAtLedgerState(mergedAddresses, ledgerStateSelector),
+        this.weftStateApi.getPrice(mergedAddresses, ledgerStateSelector),
       ])
 
       const previousPriceMap = new Map(
@@ -90,6 +103,16 @@ export class PriceStore extends BaseStore {
     const prices = this.prices[address] ?? { current: dec(0), previous: dec(0) }
 
     return prices
+  }
+
+  buildPrice(address: string) {
+    const { current, previous } = this.getPrice(address)
+    const priceUsd = this.xrdPriceStore.xrdPrice.mul(current)
+    const previousPriceUsd = this.xrdPriceStore.xrdPreviousPrice.mul(previous)
+    const changePct = previousPriceUsd.isZero()
+      ? null
+      : priceUsd.sub(previousPriceUsd).div(previousPriceUsd).mul(100)
+    return { priceUsd, previousPriceUsd, changePct }
   }
 }
 

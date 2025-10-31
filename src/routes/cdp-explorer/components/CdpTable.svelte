@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
+  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
   import type { XRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import type Decimal from 'decimal.js'
   import CDPHealthPill from '$lib/components/common/CDPHealthPill.svelte'

@@ -3,6 +3,7 @@
   import Tab from '$lib/components/common/Tab.svelte'
   import Tabs from '$lib/components/common/Tabs.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec } from '$lib/utils/common'
@@ -18,20 +19,22 @@
     totalBorrowed: Decimal
   }
 
-  type CollateralTotals = {
-    totalDepositUSD: Decimal
-    totalDepositUnderDUUSD: Decimal
-    totalDepositUnderLSU: Decimal
-  }
+  // type CollateralTotals = {
+  //   totalDepositUSD: Decimal
+  //   totalDepositUnderDUUSD: Decimal
+  //   totalDepositUnderLSU: Decimal
+  // }
 
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
+  const metadataService = getMetadataService()
 
   onMount(() => {
     if (marketInfoStore.status === 'not loaded') {
       marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
+        metadataService.getResourceDetails(marketInfoStore.allResourceAddresses2)
       })
     }
   })
@@ -62,42 +65,42 @@
     return totals
   })
 
-  const collateralTotals = $derived.by(() => {
-    const totals: CollateralTotals = {
-      totalDepositUSD: dec(0),
-      totalDepositUnderDUUSD: dec(0),
-      totalDepositUnderLSU: dec(0),
-    }
+  // const collateralTotals = $derived.by(() => {
+  //   const totals: CollateralTotals = {
+  //     totalDepositUSD: dec(0),
+  //     totalDepositUnderDUUSD: dec(0),
+  //     totalDepositUnderLSU: dec(0),
+  //   }
 
-    marketInfoStore.collateralResources.forEach((collateralResource) => {
-      const { current: priceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
-      const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
+  //   marketInfoStore.collateralResources.forEach((collateralResource) => {
+  //     const { current: priceInXRD } = priceStore.getPrice(collateralResource.resourceAddress)
+  //     const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
 
-      const depositValue = collateralResource.totalDeposit.mul(priceInUSD)
-      const underDuValue = collateralResource.totalDepositUnderDU.mul(priceInUSD)
+  //     // const depositValue = collateralResource.totalDeposit.mul(priceInUSD)
+  //     // const underDuValue = collateralResource.totalDepositUnderDU.mul(priceInUSD)
 
-      totals.totalDepositUSD = totals.totalDepositUSD.add(depositValue)
-      totals.totalDepositUnderDUUSD = totals.totalDepositUnderDUUSD.add(underDuValue)
-    })
+  //     totals.totalDepositUSD = totals.totalDepositUSD.add(depositValue)
+  //     totals.totalDepositUnderDUUSD = totals.totalDepositUnderDUUSD.add(underDuValue)
+  //   })
 
-    marketInfoStore.lsuAmounts.forEach((lsuData) => {
-      const unitRedemptionValueAmount = lsuData.unitRedemptionValue
+  //   marketInfoStore.lsuAmounts.forEach((lsuData) => {
+  //     const unitRedemptionValueAmount = lsuData.unitRedemptionValue
 
-      const unitRedemptionValue = dec(unitRedemptionValueAmount)
-      const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
+  //     const unitRedemptionValue = dec(unitRedemptionValueAmount)
+  //     const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
 
-      const underLsuValue = lsuData.amount.mul(priceInUSD)
+  //     const underLsuValue = lsuData.amount.mul(priceInUSD)
 
-      totals.totalDepositUnderLSU = totals.totalDepositUnderLSU.add(underLsuValue)
-    })
+  //     totals.totalDepositUnderLSU = totals.totalDepositUnderLSU.add(underLsuValue)
+  //   })
 
-    return totals
-  })
+  //   return totals
+  // })
 
   function refreshMarkets() {
     xrdPriceStore.updatePrice()
     marketInfoStore.loadMarketInfo().then(() => {
-      priceStore.loadPrices(marketInfoStore.allResourceAddresses)
+      priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
     })
   }
 </script>
@@ -113,9 +116,9 @@
     totalSupplied={lendingTotals.totalSupplied}
     totalBorrowed={lendingTotals.totalBorrowed}
     totalLiquidity={lendingTotals.totalSupplied.sub(lendingTotals.totalBorrowed)}
-    totalCollateral={collateralTotals.totalDepositUSD.add(collateralTotals.totalDepositUnderLSU)}
-    totalLentCollateral={collateralTotals.totalDepositUnderDUUSD}
   />
+  <!-- totalCollateral={collateralTotals.totalDepositUSD.add(collateralTotals.totalDepositUnderLSU)}
+    totalLentCollateral={collateralTotals.totalDepositUnderDUUSD} -->
 
   <!-- Tab Navigation -->
   <div class='card bg-base-200/60'>

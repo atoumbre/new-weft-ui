@@ -1,234 +1,5 @@
-import { StateEntityDetailsResponseFungibleResourceDetails, GatewayApiClient, LedgerStateSelector, ProgrammaticScryptoSborValueEnum, StateApi, StateEntityDetailsResponseNonFungibleResourceDetails, ProgrammaticScryptoSborValue, FungibleResourcesCollection, NonFungibleResourcesCollection, StateNonFungibleLocationResponseItem } from '@radixdlt/babylon-gateway-api-sdk';
+import { LedgerStateSelector, FungibleResourcesCollection, NonFungibleResourcesCollection, ProgrammaticScryptoSborValueEnum, StateEntityDetailsResponseFungibleResourceDetails, StateEntityDetailsResponseNonFungibleResourceDetails, GatewayApiClient, StateApi, ProgrammaticScryptoSborValue, StateNonFungibleLocationResponseItem, TransactionPreviewRequest } from '@radixdlt/babylon-gateway-api-sdk';
 import Decimal from 'decimal.js';
-
-declare const optionTransformPlugin: EnumTransformerPlugin$1;
-declare class EntityStateFetcher$1 {
-    gatewayApi: GatewayApiClient;
-    apiCallCount: number;
-    private options;
-    private enumPlugins;
-    private tuplePlugins;
-    private resourceStateCache;
-    constructor(gatewayApi: GatewayApiClient, { enumPlugins, tuplePlugins, options }?: {
-        options?: FetchOptions$1;
-        enumPlugins?: EnumTransformerPlugin$1 | EnumTransformerPlugin$1[];
-        tuplePlugins?: TupleTransformerPlugin$1 | TupleTransformerPlugin$1[];
-    });
-    get stateApi(): StateApi;
-    static newBaseState<T = any>($entityAddress: string, stateFetcher: EntityStateFetcher$1): BaseEntityState$1<T>;
-    addPlugins({ enumPlugins, tuplePlugins }: {
-        enumPlugins?: EnumTransformerPlugin$1 | EnumTransformerPlugin$1[];
-        tuplePlugins?: TupleTransformerPlugin$1 | TupleTransformerPlugin$1[];
-    }): void;
-    addEnumPlugin(plugin: EnumTransformerPlugin$1 | EnumTransformerPlugin$1[]): void;
-    addTuplePlugin(plugin: TupleTransformerPlugin$1 | TupleTransformerPlugin$1[]): void;
-    setOptions(options: FetchOptions$1): void;
-    fetchEntityState<T = any>(entityAddressesInput: string[], localFetchOptions?: Partial<FetchOptions$1>): Promise<BaseEntityState$1<T>[]>;
-    fetchNftData<T = any>(nonFungibleResourceAddress: string, nonFungibleLocalIds: string[], fetchOptions?: {
-        loadLocations?: boolean;
-        ledgerStateSelector?: LedgerStateSelector;
-    }): Promise<BaseNonFungibleData$1<T>[]>;
-    fetchResourceState(entityAddressesInput: string[], fetchOptions?: {
-        ledgerStateSelector?: LedgerStateSelector;
-    }): Promise<ResourceState$1[]>;
-    fetchField(field: ProgrammaticScryptoSborValue | undefined): any;
-}
-
-interface FungibleVaultState$1 {
-    resourceAddress: string;
-    amount: Decimal;
-}
-type FungibleResourceCollectionItem$1 = {
-    amount: Decimal;
-    fungibleDetails?: FungibleResourceState$1;
-} & ({
-    aggregationLevel: 'Global';
-} | {
-    aggregationLevel: 'Vault';
-    vaults: Record<string, FungibleVaultState$1>;
-});
-declare class FungibleResourceCollectionState$1 {
-    entity: string;
-    values: Record<string, FungibleResourceCollectionItem$1>;
-    private initialized;
-    private stateFetcher;
-    private cursor;
-    constructor(entity: string, stateFetcher: EntityStateFetcher$1);
-    get hasMore(): boolean;
-    get isInitialized(): boolean;
-    private reset;
-    init({ aggregationLevel, ledgerStateSelector, recursive }: {
-        aggregationLevel?: 'Global' | 'Vault';
-        ledgerStateSelector?: LedgerStateSelector;
-        recursive?: boolean;
-    }): Promise<void>;
-    setInitialValues({ initialValues }: {
-        initialValues: {
-            fungible_resources: FungibleResourcesCollection | undefined;
-            state_version: number;
-        };
-    }): void;
-    loadMore(recursive?: boolean): Promise<void>;
-    getVaultState(vaultAddress: string): FungibleVaultState$1 | undefined;
-    private loadValues;
-    private parseValues;
-}
-
-type NonFungibleResourceCollectionItem$1 = {
-    totalCount: number;
-    ids?: string[];
-    nonFungibleDetails?: NonFungibleResourceState$1;
-} & ({
-    aggregationLevel: 'Global';
-} | {
-    aggregationLevel: 'Vault';
-    vaults: Record<string, NonFungibleVaultState$1>;
-});
-interface NonFungibleVaultState$1 {
-    resourceAddress: string;
-    totalCount: number;
-    ids: string[];
-}
-declare class NonFungibleResourceCollectionState$1 {
-    entity: string;
-    values: Record<string, NonFungibleResourceCollectionItem$1>;
-    private initialized;
-    private stateFetcher;
-    private cursor;
-    constructor(entity: string, stateFetcher: EntityStateFetcher$1);
-    get hasMore(): boolean;
-    get isInitialized(): boolean;
-    private reset;
-    init({ aggregationLevel, ledgerStateSelector, recursive }: {
-        aggregationLevel?: 'Global' | 'Vault';
-        ledgerStateSelector?: LedgerStateSelector;
-        recursive?: boolean;
-    }): Promise<void>;
-    setInitialValues({ initialValues }: {
-        initialValues: {
-            non_fungible_resources: NonFungibleResourcesCollection | undefined;
-            state_version: number;
-        };
-    }): Promise<void>;
-    loadMore(recursive?: boolean): Promise<void>;
-    getVaultState(vaultAddress: string): NonFungibleVaultState$1 | undefined;
-    loadValues({ aggregationLevel, recursive, ledgerStateSelector }: {
-        aggregationLevel?: 'Global' | 'Vault';
-        ledgerStateSelector?: LedgerStateSelector;
-        recursive?: boolean;
-    }): Promise<void>;
-    private parseValues;
-}
-
-type FungibleResourceState$1 = {
-    $entityAddress: string;
-    $metadata: Record<string, string>;
-} & {
-    $type: 'FungibleResource';
-    $details: StateEntityDetailsResponseFungibleResourceDetails;
-};
-type NonFungibleResourceState$1 = {
-    $entityAddress: string;
-    $metadata: Record<string, string>;
-} & {
-    $type: 'NonFungibleResource';
-    $details: StateEntityDetailsResponseNonFungibleResourceDetails;
-};
-type ResourceState$1 = FungibleResourceState$1 | NonFungibleResourceState$1;
-interface BaseEntityState$1<T = any> {
-    $entityAddress: string;
-    $fungibleResources: FungibleResourceCollectionState$1;
-    $nonFungibleResources: NonFungibleResourceCollectionState$1;
-    $metadata: Record<string, string>;
-    $state?: T;
-    initialized: boolean;
-}
-interface BaseNonFungibleData$1<T = any> {
-    $entityAddress: string;
-    $nonFungibleId: string;
-    $owningVault?: string;
-    $owningVaultParent?: string;
-    $owningVaultAncestor?: string;
-    $data?: T;
-}
-interface FetchOptions$1 {
-    loadState: boolean;
-    loadResourceDetails: boolean;
-    recursiveFungibleResourceLoading: boolean;
-    recursiveNonFungibleResourceLoading: boolean;
-    ledgerStateSelector?: LedgerStateSelector;
-}
-interface EnumTransformerPlugin$1<T = any> {
-    enumName: string[];
-    parser: (field: {
-        kind: 'Enum';
-    } & ProgrammaticScryptoSborValueEnum, fetcher: EntityStateFetcher$1) => T;
-}
-interface TupleTransformerPlugin$1<T = any, I = any> {
-    tupleName: string;
-    parser: (field: I, fetcher: EntityStateFetcher$1) => T;
-}
-
-declare class BaseModel {
-    protected stateFetcher: EntityStateFetcher$1;
-    constructor(stateFetcher?: EntityStateFetcher$1);
-}
-declare class EntityStateModel<T = any> extends BaseModel {
-    innerState: BaseEntityState$1<T>;
-    initialized: boolean;
-    constructor(entityAddress: string, stateFetcher?: EntityStateFetcher$1);
-    init(): Promise<void>;
-    get state(): T;
-}
-declare class NonFungibleDataModel<T = any> extends BaseModel {
-    innerData: BaseNonFungibleData$1<T>;
-    initialized: boolean;
-    constructor(entityAddress: string, nonFungibleId: string, stateFetcher?: EntityStateFetcher$1);
-    init(): Promise<void>;
-    get data(): T;
-}
-declare class ResourceDetailsRepo extends BaseModel {
-    ledgerStateSelector?: LedgerStateSelector;
-    resources: Record<string, ResourceState$1>;
-    constructor(stateFetcher?: EntityStateFetcher$1, ledgerStateSelector?: LedgerStateSelector);
-    fetchResourceState(entityAddressesInput: string[]): Promise<void>;
-}
-
-declare class ComponentState<T = any> {
-    entity: string;
-    stateFetcher: EntityStateFetcher$1;
-    state: T | undefined;
-    initialized: boolean;
-    constructor(entity: string, stateFetcher: EntityStateFetcher$1);
-    init(ledgerStateSelector?: LedgerStateSelector): Promise<void>;
-}
-
-declare class KeyValueStore$1<K extends string, V = any> {
-    values: Record<K, V>;
-    get hasMore(): boolean;
-    get isInitialized(): boolean;
-    private storeAddress;
-    private initialized;
-    private defaultValue?;
-    private stateFetcher;
-    private cursor;
-    constructor(storeAddress: string, stateFetcher: EntityStateFetcher$1, defaultValue?: V);
-    init(ledgerStateSelector?: LedgerStateSelector): Promise<void>;
-    loadMore(): Promise<void>;
-    getValue(key: K): V | undefined;
-    setDefaultValue(value: V): void;
-    private loadValues;
-}
-
-declare const dec: (input: any) => Decimal;
-declare const ZERO: Decimal;
-declare const ONE: Decimal;
-declare const ONE_HUNDRED: Decimal;
-declare const PRECISE_ZERO: Decimal;
-declare const PRECISE_ONE: Decimal;
-declare const PRECISE_ONE_HUNDRED: Decimal;
-declare function toCamelCase(str: string): string;
-declare function findIndexes<T>(arr: T[], predicate: (element: T) => boolean): number[];
 
 interface FungibleVaultState {
     resourceAddress: string;
@@ -395,6 +166,22 @@ declare class EntityStateFetcher {
         ledgerStateSelector?: LedgerStateSelector;
     }): Promise<ResourceState[]>;
     fetchField(field: ProgrammaticScryptoSborValue | undefined): any;
+}
+
+interface IsBreakPoint {
+    usage: Decimal;
+    rate: Decimal;
+    slop: Decimal;
+}
+declare class InterestStrategy {
+    description?: string;
+    breakPoints: IsBreakPoint[];
+    constructor(breakPoints?: IsBreakPoint[], description?: string);
+    getChartPoints(pointCount?: number): {
+        usage: number;
+        rate: number;
+    }[];
+    getInterestRate(usage: number): number;
 }
 
 declare class KeyValueStore<K extends string, V = any> {
@@ -604,22 +391,6 @@ interface CollateralizeDebtPositionData {
     nftCollateralPositions: Record<string, NFTCollateralPositionData>;
 }
 
-interface IsBreakPoint {
-    usage: Decimal;
-    rate: Decimal;
-    slop: Decimal;
-}
-declare class InterestStrategy {
-    description?: string;
-    breakPoints: IsBreakPoint[];
-    constructor(breakPoints?: IsBreakPoint[], description?: string);
-    getChartPoints(pointCount?: number): {
-        usage: number;
-        rate: number;
-    }[];
-    getInterestRate(usage: number): number;
-}
-
 declare type LendingService = 'FlashLoan' | 'Deposit' | 'Withdraw' | 'ProtectedBorrow' | 'ProtectedRepay';
 declare type DepositLimitType = {
     variantName: 'None';
@@ -707,8 +478,6 @@ interface LoanResource {
     riskConfig: LoanConfig;
     services: Record<LoanService, OperatingStatusValue>;
     lendingPoolState?: ReturnedResourcePoolState;
-    metadata: Record<string, string>;
-    duMetadata: Record<string, string>;
 }
 interface CollateralResource {
     resourceAddress: string;
@@ -719,34 +488,123 @@ interface CollateralResource {
         group: EfficiencyGroup;
         config: CollateralConfig;
     }>;
-    totalDeposit: Decimal;
-    totalDepositDU: Decimal;
-    totalDepositUnderDU: Decimal;
-    metadata: Record<string, string>;
 }
-interface LSUCollateral {
+interface FungibleResource {
     resourceAddress: string;
     amount: Decimal;
     metadata: Record<string, string>;
-    validatorMetadata: Record<string, string>;
+    duAddress?: string;
+    duReverseAddress?: string;
+}
+interface LSUResource {
+    resourceAddress: string;
+    amount: Decimal;
     unitRedemptionValue: Decimal;
     validatorAddress: string;
+    metadata: Record<string, string>;
+    validatorMetadata: Record<string, string>;
 }
-interface ClaimNFTCollateral {
+interface NonFungibleResource {
     resourceAddress: string;
     ids: string[];
     metadata: Record<string, string>;
-    validatorMetadata: Record<string, string>;
+}
+interface ClaimNFT {
+    resourceAddress: string;
+    ids: string[];
     validatorAddress: string;
+    metadata: Record<string, string>;
+    validatorMetadata: Record<string, string>;
 }
 
-interface WeftRadixApiServiceInterface {
-    getPrice: (resources: string[] | undefined) => Promise<{
+declare class WeftLedgerStateClient {
+    private radixGatewayApi;
+    private stateFetcher;
+    private static instance;
+    private constructor();
+    static setInstance(radixGatewayApi?: GatewayApiClient): WeftLedgerStateClient;
+    static getInstance(): WeftLedgerStateClient;
+    getFetcher(): EntityStateFetcher;
+    getGatewayApi(): GatewayApiClient;
+}
+
+declare class CdpOperations {
+    private client;
+    constructor(client: WeftLedgerStateClient);
+    getMultipleCdp(ids: string[], options?: {
+        cdpPerBatch?: number;
+        onProgress?: (fetched: number) => void;
+    }): Promise<FetchResult>;
+    getSingleCdp(id: string, preManifest: string): Promise<CollateralizeDebtPositionData>;
+    getCdpIds(returnBurntTokens?: boolean): Promise<StateNonFungibleLocationResponseItem[]>;
+    private getCdpDataInternal;
+    private cdpRecursiveIndexer;
+}
+
+declare class ComponentResourceOperations {
+    private client;
+    constructor(client: WeftLedgerStateClient);
+    getResourceInfos(componentAddress: string[], ledgerStateSelector?: LedgerStateSelector): Promise<Record<string, {
+        fungibleResources: FungibleResource[];
+        lsuResources: LSUResource[];
+        nonFungibleResources: NonFungibleResource[];
+        claimNfts: ClaimNFT[];
+    }>>;
+}
+
+declare class PoolOperations {
+    private client;
+    constructor(client: WeftLedgerStateClient);
+    getPoolInfos(ledgerStateSelector?: LedgerStateSelector): Promise<{
+        pools: ReturnedResourcePoolState[];
+        globalLendingService: Record<LendingService, OperatingStatusValue>;
+    }>;
+    private getResourcePoolAtLedgerState;
+    private getResourcePoolLive;
+}
+
+declare class MarketOperations {
+    private client;
+    private poolOps;
+    constructor(client: WeftLedgerStateClient, poolOps: PoolOperations);
+    getMarketInfos(ledgerStateSelector?: LedgerStateSelector): Promise<{
+        loanResources: LoanResource[];
+        collateralResources: CollateralResource[];
+        marketConfig: MarketConfig;
+        marketFeeConfig: MarketProtocolFeeConfig;
+        globalMarketService: Record<MarketService, OperatingStatusValue>;
+        globalLendingService: Record<LendingService, OperatingStatusValue>;
+        globalLoanService: Record<LoanService, OperatingStatusValue>;
+        globalCollateralService: GlobalCollateralService;
+    }>;
+    getPrice(resources?: string[] | undefined, ledgerStateSelector?: LedgerStateSelector): Promise<{
         resourceAddress: string;
         price: Decimal;
     }[]>;
-    getPriceAtLedgerState: (resources: string[], ledgerStateSelector?: LedgerStateSelector) => Promise<{
-        resourceAddress: any;
+    private getPriceAtLedgerState;
+    private getPriceLive;
+    getInterestModels(ledgerStateSelector?: LedgerStateSelector): Promise<{
+        id: string;
+        model: InterestStrategy;
+    }[]>;
+}
+
+declare class WeftStakingOperations {
+    private client;
+    private marketOps;
+    private poolOps;
+    constructor(client: WeftLedgerStateClient, marketOps: MarketOperations, poolOps: PoolOperations);
+    getWeftStakingApr(): Promise<{
+        apr: number;
+        staked: number;
+        tvl_xrd: number;
+        tvl_usd: number;
+    }>;
+}
+
+interface WeftRadixApiServiceInterface {
+    getPrice: (resources: string[] | undefined, ledgerStateSelector?: LedgerStateSelector | undefined) => Promise<{
+        resourceAddress: string;
         price: Decimal;
     }[]>;
     getPoolInfos: (ledgerStateSelector?: LedgerStateSelector) => Promise<{
@@ -760,17 +618,19 @@ interface WeftRadixApiServiceInterface {
     getMarketInfos: (edgerStateSelector?: LedgerStateSelector) => Promise<{
         loanResources: LoanResource[];
         collateralResources: CollateralResource[];
-        lsuCollaterals: LSUCollateral[];
-        claimNftCollaterals: ClaimNFTCollateral[];
         marketConfig: MarketConfig;
         marketFeeConfig: MarketProtocolFeeConfig;
-        globalMarketService: Record<MarketService, OperatingStatusValue>;
         globalLendingService: Record<LendingService, OperatingStatusValue>;
+        globalMarketService: Record<MarketService, OperatingStatusValue>;
         globalLoanService: Record<LoanService, OperatingStatusValue>;
         globalCollateralService: GlobalCollateralService;
-        allFungibleResourceAddresses: string[];
-        allValidatorAddresses: string[];
     }>;
+    getResourceInfos: (componentAddresses: string[], ledgerStateSelector?: LedgerStateSelector) => Promise<Record<string, {
+        fungibleResources: FungibleResource[];
+        lsuResources: LSUResource[];
+        nonFungibleResources: NonFungibleResource[];
+        claimNfts: ClaimNFT[];
+    }>>;
     getSingleCdp: (id: string, preManifest: string) => Promise<CollateralizeDebtPositionData>;
     getMultipleCdp: (ids: string[], options?: {
         cdpPerBatch?: number;
@@ -785,10 +645,14 @@ interface WeftRadixApiServiceInterface {
     }>;
 }
 declare class WeftLedgerSateFetcher implements WeftRadixApiServiceInterface {
-    private radixGatewayApi;
-    private stateFetcher;
-    private static instance;
+    private client;
+    private poolOps;
+    private marketOps;
+    private cdpOps;
+    private stakingOps;
+    private resourceOps;
     private constructor();
+    private static instance;
     static setInstance(radixGatewayApi?: GatewayApiClient): WeftLedgerSateFetcher;
     static getInstance(): WeftLedgerSateFetcher;
     getFetcher(): EntityStateFetcher;
@@ -800,35 +664,32 @@ declare class WeftLedgerSateFetcher implements WeftRadixApiServiceInterface {
     getMarketInfos(ledgerStateSelector?: LedgerStateSelector): Promise<{
         loanResources: LoanResource[];
         collateralResources: CollateralResource[];
-        lsuCollaterals: LSUCollateral[];
-        claimNftCollaterals: ClaimNFTCollateral[];
         marketConfig: MarketConfig;
         marketFeeConfig: MarketProtocolFeeConfig;
         globalMarketService: Record<MarketService, OperatingStatusValue>;
         globalLendingService: Record<LendingService, OperatingStatusValue>;
         globalLoanService: Record<LoanService, OperatingStatusValue>;
         globalCollateralService: GlobalCollateralService;
-        allFungibleResourceAddresses: string[];
-        allValidatorAddresses: string[];
     }>;
-    getMultipleCdp(ids: string[], options?: {
-        cdpPerBatch?: number;
-        onProgress?: (fetched: number) => void;
-    }): Promise<FetchResult>;
-    getSingleCdp(id: string, preManifest: string): Promise<CollateralizeDebtPositionData>;
-    getPrice(resources?: string[] | undefined, resourcesPerBatch?: number): Promise<{
+    getPrice(resources?: string[], ledgerStateSelector?: LedgerStateSelector): Promise<{
         resourceAddress: string;
-        price: Decimal;
-    }[]>;
-    private getResourcePoolAtLedgerState;
-    getPriceAtLedgerState(resources: string[], ledgerStateSelector?: LedgerStateSelector): Promise<{
-        resourceAddress: any;
         price: Decimal;
     }[]>;
     getInterestModels(ledgerStateSelector?: LedgerStateSelector): Promise<{
         id: string;
         model: InterestStrategy;
     }[]>;
+    getResourceInfos(componentAddresses: string[], ledgerStateSelector?: LedgerStateSelector): Promise<Record<string, {
+        fungibleResources: FungibleResource[];
+        lsuResources: LSUResource[];
+        nonFungibleResources: NonFungibleResource[];
+        claimNfts: ClaimNFT[];
+    }>>;
+    getMultipleCdp(ids: string[], options?: {
+        cdpPerBatch?: number;
+        onProgress?: (fetched: number) => void;
+    }): Promise<FetchResult>;
+    getSingleCdp(id: string, preManifest: string): Promise<CollateralizeDebtPositionData>;
     getCdpIds(returnBurntTokens?: boolean): Promise<StateNonFungibleLocationResponseItem[]>;
     getWeftStakingApr(): Promise<{
         apr: number;
@@ -836,12 +697,9 @@ declare class WeftLedgerSateFetcher implements WeftRadixApiServiceInterface {
         tvl_xrd: number;
         tvl_usd: number;
     }>;
-    private getCdpDataInternal;
-    private cdpRecursiveIndexer;
-    private getResourcePoolLive;
-    private decodeCDP;
-    private baseTransactionParams;
 }
+
+declare function decodeCDP(id: string, encodedCDP: any): CollateralizeDebtPositionData;
 
 declare const LENDING_POOL_COMPONENT = "component_rdx1czmr02yl4da709ceftnm9dnmag7rthu0tu78wmtsn5us9j02d9d0xn";
 declare const LENDING_MARKET_COMPONENT = "component_rdx1cpy6putj5p7937clqgcgutza7k53zpha039n9u5hkk0ahh4stdmq4w";
@@ -867,6 +725,13 @@ declare const resourceToDuMapping: Map<string, {
 }>;
 declare const duToResourceMapping: Map<string, string>;
 declare const defaultLendingPools: string[];
+
+declare const interestStrategyPlugin: TupleTransformerPlugin<InterestStrategy>;
+declare const serviceStatusStrategyPlugin: TupleTransformerPlugin<Record<string, OperatingStatusValue>>;
+declare const configAndServiceKeyPlugin: EnumTransformerPlugin<string>;
+declare const servicePlugin: EnumTransformerPlugin<string>;
+
+declare function createBaseTransactionParams(): TransactionPreviewRequest;
 
 declare type EfficiencyMode = {
     variantName: 'None';
@@ -904,4 +769,4 @@ declare interface OnLedgerCdpData {
     loans: Record<string, LoanInfo>;
 }
 
-export { type BaseEntityState$1 as BaseEntityState, BaseModel, type BaseNonFungibleData$1 as BaseNonFungibleData, CDP_RESOURCE, type CacheEntry, type ClaimNFTCollateral, type CollateralConfig, type CollateralConfigVersion, type CollateralInfo, type CollateralPositionData, type CollateralResource, type CollateralResourceConfig, type CollateralService, type CollateralizeDebtPositionData, ComponentState, type ConfigurationEntry, type ConfigurationManager, type ContributionState, type DepositLimitType, type EfficiencyGroup, type EfficiencyMode, EntityStateFetcher$1 as EntityStateFetcher, EntityStateModel, type EnumTransformerPlugin$1 as EnumTransformerPlugin, type FetchOptions$1 as FetchOptions, type FetchResult, type FungibleResourceCollectionItem$1 as FungibleResourceCollectionItem, FungibleResourceCollectionState$1 as FungibleResourceCollectionState, type FungibleResourceState$1 as FungibleResourceState, type FungibleVaultState$1 as FungibleVaultState, type GlobalCollateralService, InterestStrategy, type IsBreakPoint, type IsolationGroup, KeyValueStore$1 as KeyValueStore, LENDING_MARKET_COLLATERAL_CONFIG_KVS, LENDING_MARKET_COLLATERAL_SERVICE_KVS, LENDING_MARKET_COMPONENT, LENDING_MARKET_EFFICIENT_GROUP_KVS, LENDING_MARKET_LOAN_CONFIG_KVS, LENDING_MARKET_LOAN_SERVICE_KVS, LENDING_MARKET_PRICE_CACHE_KVS, LENDING_MARKET_RES_CONFIG_KVS, LENDING_POOL_COMPONENT, LENDING_POOL_INTEREST_STRATEGY_KVS, LENDING_POOL_RESOURCE_POOL_KVS, LENDING_POOL_SERVICE_KVS, type LSUCollateral, type LendingMarketState, type LendingPoolProtocolFeeConfig, type LendingPoolProxy, type LendingPoolState, type LendingService, type LoanConfig, type LoanInfo, type LoanPositionData, type LoanResource, type LoanResourceConfig, type LoanService, type MarketConfig, type MarketProtocolFeeConfig, type MarketService, type NFTCollateralConfig, type NFTCollateralInfo, type NFTCollateralPositionData, type NFTLiquidationValue, NonFungibleDataModel, type NonFungibleResourceCollectionItem$1 as NonFungibleResourceCollectionItem, NonFungibleResourceCollectionState$1 as NonFungibleResourceCollectionState, type NonFungibleResourceState$1 as NonFungibleResourceState, type NonFungibleVaultState$1 as NonFungibleVaultState, ONE, ONE_HUNDRED, type OnLedgerCdpData, type OperatingStatusValue, PRECISE_ONE, PRECISE_ONE_HUNDRED, PRECISE_ZERO, PROTOCOL_INTEREST_SHARE, type PriceFeed, type RegisteredNFTResourceType, type RegisteredResourceType, type ResourceConfig, ResourceDetailsRepo, type ResourcePoolConfig, type ResourcePoolState, type ResourceState$1 as ResourceState, type ReturnedResourcePoolState, STAKEHOLDER_REWARD_SHARE, type ServiceManager, type TupleTransformerPlugin$1 as TupleTransformerPlugin, WEFT_RESOURCE, WEFT_STAKING_COMPONENT, WeftLedgerSateFetcher, type WeftRadixApiServiceInterface, XUSDC_RESOURCE, ZERO, dec, defaultLendingPools, duToResourceMapping, findIndexes, optionTransformPlugin, resourceToDuMapping, toCamelCase };
+export { CDP_RESOURCE, type CacheEntry, CdpOperations, type ClaimNFT, type CollateralConfig, type CollateralConfigVersion, type CollateralInfo, type CollateralPositionData, type CollateralResource, type CollateralResourceConfig, type CollateralService, type CollateralizeDebtPositionData, ComponentResourceOperations, type ConfigurationEntry, type ConfigurationManager, type ContributionState, type DepositLimitType, type EfficiencyGroup, type EfficiencyMode, type FetchResult, type FungibleResource, type GlobalCollateralService, InterestStrategy, type IsBreakPoint, type IsolationGroup, LENDING_MARKET_COLLATERAL_CONFIG_KVS, LENDING_MARKET_COLLATERAL_SERVICE_KVS, LENDING_MARKET_COMPONENT, LENDING_MARKET_EFFICIENT_GROUP_KVS, LENDING_MARKET_LOAN_CONFIG_KVS, LENDING_MARKET_LOAN_SERVICE_KVS, LENDING_MARKET_PRICE_CACHE_KVS, LENDING_MARKET_RES_CONFIG_KVS, LENDING_POOL_COMPONENT, LENDING_POOL_INTEREST_STRATEGY_KVS, LENDING_POOL_RESOURCE_POOL_KVS, LENDING_POOL_SERVICE_KVS, type LSUResource, type LendingMarketState, type LendingPoolProtocolFeeConfig, type LendingPoolProxy, type LendingPoolState, type LendingService, type LoanConfig, type LoanInfo, type LoanPositionData, type LoanResource, type LoanResourceConfig, type LoanService, type MarketConfig, MarketOperations, type MarketProtocolFeeConfig, type MarketService, type NFTCollateralConfig, type NFTCollateralInfo, type NFTCollateralPositionData, type NFTLiquidationValue, type NonFungibleResource, type OnLedgerCdpData, type OperatingStatusValue, PROTOCOL_INTEREST_SHARE, PoolOperations, type PriceFeed, type RegisteredNFTResourceType, type RegisteredResourceType, type ResourceConfig, type ResourcePoolConfig, type ResourcePoolState, type ReturnedResourcePoolState, STAKEHOLDER_REWARD_SHARE, type ServiceManager, WEFT_RESOURCE, WEFT_STAKING_COMPONENT, WeftLedgerSateFetcher, WeftLedgerStateClient, type WeftRadixApiServiceInterface, WeftStakingOperations, XUSDC_RESOURCE, configAndServiceKeyPlugin, createBaseTransactionParams, decodeCDP, defaultLendingPools, duToResourceMapping, interestStrategyPlugin, resourceToDuMapping, servicePlugin, serviceStatusStrategyPlugin };

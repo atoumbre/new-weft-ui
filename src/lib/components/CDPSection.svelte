@@ -388,14 +388,14 @@
     for (const lr of availableLoanResources) map.set(lr.asset, { symbol: lr.asset, logo: lr.logo })
     return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol))
   })
-  const prices = $derived.by(() => {
-    const p: Record<string, number> = {}
-    if (currentCDP) {
-      for (const c of currentCDP.collaterals) p[c.asset] = parseUsdStr(c.price)
-      for (const l of currentCDP.loans) p[l.asset] = parseUsdStr(l.price)
-    }
-    return p
-  })
+  // const prices = $derived.by(() => {
+  //   const p: Record<string, number> = {}
+  //   if (currentCDP) {
+  //     for (const c of currentCDP.collaterals) p[c.asset] = parseUsdStr(c.price)
+  //     for (const l of currentCDP.loans) p[l.asset] = parseUsdStr(l.price)
+  //   }
+  //   return p
+  // })
   const ltv = $derived.by(() => {
     const m: Record<string, number> = {}
     if (currentCDP) {
@@ -545,7 +545,7 @@
                   <ListRow>
                     {#snippet left()}
                       <TokenCell
-                        logo={collateral.logo}
+                        iconUrl={collateral.logo}
                         symbol={collateral.asset}
                         price={collateral.price}
                         change={collateral.change24h}
@@ -749,7 +749,6 @@
   {presetAsset}
   {collateralAssets}
   {debtAssets}
-  {prices}
   {ltv}
   currentCollateral={currentCollateralUSD}
   currentDebt={currentDebtUSD}

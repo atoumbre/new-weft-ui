@@ -25,19 +25,28 @@ export class XRDPriceStore extends BaseStore {
       cacheTTL: 5 * 60 * 1000, // 5 minutes
     })
 
-    const updaterTimer = setInterval(
-      () => {
-        void this.updatePrice()
-      },
-      15 * 60 * 1000,
-    )
+    if (typeof window !== 'undefined') {
+      this.updaterTimer = setInterval(
+        () => {
+          void this.updatePrice()
+        },
+        15 * 60 * 1000,
+      )
+    }
 
     onDestroy(() => {
-      clearInterval(updaterTimer)
+      if (this.updaterTimer)
+        clearInterval(this.updaterTimer)
     })
   }
 
-  async updatePrice() {
+  async updatePrice(force = false) {
+    if (this.loading)
+      return
+
+    if (!force && this.isDataFresh())
+      return
+
     await this.executeWithErrorHandling(async () => {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
       const unixTimestamp = Math.floor(yesterday.getTime() / 1000)

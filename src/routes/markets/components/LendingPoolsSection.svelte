@@ -1,10 +1,11 @@
 <script lang='ts'>
-  import type { LoanResource } from '$lib/internal_modules/dist'
+  import type { LoanResource } from '$lib/internal_modules/weft-ledger-state'
   import type Decimal from 'decimal.js'
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import AssetCard from '$lib/components/common/AssetCard.svelte'
   import UtilizationBar from '$lib/components/common/UtilizationBar.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { fPercent } from '$lib/utils/common'
@@ -27,6 +28,7 @@
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
+  const metadataService = getMetadataService()
 
   function transformPoolData(loanResource: LoanResource): MarketPool {
     const { current: priceInXRD, previous: previousPriceInXRD } = priceStore.getPrice(
@@ -35,7 +37,7 @@
     const priceInUSD = xrdPriceStore.xrdPrice.mul(priceInXRD)
     const previousPriceInUSD = xrdPriceStore.xrdPreviousPrice.mul(previousPriceInXRD)
 
-    const metadata = loanResource?.metadata
+    const metadata = metadataService.resourceInfoState.get(loanResource?.resourceAddress)?.metadata
 
     const symbol
       = metadata?.symbol

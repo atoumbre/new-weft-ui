@@ -1,8 +1,11 @@
 <script lang='ts'>
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import HealthPill from '$lib/components/common/HealthPill.svelte'
+  import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { dec } from '$lib/utils/common'
   import { createEventDispatcher } from 'svelte'
+
+  const priceStore = getPriceStore()
 
   type ActionType = 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay'
   type Asset = { symbol: string, logo: string, decimals?: number }
@@ -17,7 +20,7 @@
     collateralAssets?: Asset[]
     debtAssets?: Asset[]
 
-    prices?: Record<string, number> // USD per unit
+    // prices?: Record<string, number> // USD per unit
     ltv?: Record<string, number> // 0..1
     liqThreshold?: Record<string, number> // 0..1 used for health factor
 
@@ -46,7 +49,7 @@
       { symbol: 'USDT', logo: '💵' },
       { symbol: 'DAI', logo: '🪙' },
     ],
-    prices = { ETH: 2485.67, WBTC: 67234.12, LINK: 15.0, MATIC: 0.9, USDC: 1, USDT: 1, DAI: 1 },
+    // prices = { ETH: 2485.67, WBTC: 67234.12, LINK: 15.0, MATIC: 0.9, USDC: 1, USDT: 1, DAI: 1 },
     ltv = { ETH: 1.0, WBTC: 0.7, LINK: 0.65, MATIC: 0.6 },
     liqThreshold = { ETH: 0.85, WBTC: 0.8, LINK: 1.0, MATIC: 0.7 },
     currentCollateral = {},
@@ -54,6 +57,16 @@
     balancesCollateral = {},
     balancesDebt = {},
   }: Props = $props()
+
+  // const buildPrice = (address: string) => {
+  //   const { current, previous } = priceStore.getPrice(address)
+  //   const priceUsd = xrdPriceStore.xrdPrice.mul(current)
+  //   const previousPriceUsd = xrdPriceStore.xrdPreviousPrice.mul(previous)
+  //   const changePct = previousPriceUsd.isZero()
+  //     ? null
+  //     : priceUsd.sub(previousPriceUsd).div(previousPriceUsd).mul(100)
+  //   return { priceUsd, previousPriceUsd, changePct }
+  // }
 
   const dispatch = createEventDispatcher<{ submit: { actions: CdpAction[] } }>()
 
@@ -175,7 +188,7 @@
 
   // Impact calculations
   function usd(asset: string, units: number): number {
-    return (prices[asset] ?? 0) * units
+    return (priceStore.buildPrice(asset).priceUsd ?? dec(0)).toNumber() * units
   }
   function totalCollateralUSD(state: Record<string, number>): number {
     let sum = 0

@@ -1,8 +1,8 @@
-import type { ClaimNFTCollateral, CollateralizeDebtPositionData, CollateralResource, FetchOptions, LoanResource, LSUCollateral } from '$lib/internal_modules/dist'
+import type { ClaimNFT, CollateralizeDebtPositionData, CollateralResource, LoanResource, LSUResource } from '$lib/internal_modules/weft-ledger-state'
 import type Decimal from 'decimal.js'
 import type { MarketInfoStore } from './market-info.svelte'
 import type { RadixToolkitStore } from './rdt.svelte'
-import { CDP_RESOURCE, dec, WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
+import { CDP_RESOURCE, WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
 import { getContext, onDestroy, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 import { getMarketInfoStore } from './market-info.svelte'
@@ -19,21 +19,21 @@ export interface AccountDU {
   collateralResource?: CollateralResource
  }
 
-export interface AccountClaimNFT {
-  resourceAddress: string
-  ids: string[]
-  metadata: Record<string, string>
-  validatorMetadata: Record<string, string>
-  validatorAddress: string
-}
+// export interface AccountClaimNFT {
+//   resourceAddress: string
+//   ids: string[]
+//   metadata: Record<string, string>
+//   validatorMetadata: Record<string, string>
+//   validatorAddress: string
+// }
 
 export interface WeftUserAccountData {
   address: string
   cdps: CollateralizeDebtPositionData[]
   depositUnits: Record<string, AccountDU>
   resources: Record<string, AccountResource>
-  lsu: Record<string, LSUCollateral>
-  claimNFTs: Record<string, AccountClaimNFT>
+  lsu: Record<string, LSUResource>
+  claimNFTs: Record<string, ClaimNFT>
 }
 
 export class UserAccountsStore extends BaseStore {
@@ -58,28 +58,29 @@ export class UserAccountsStore extends BaseStore {
     this.rdtStore = getRadixToolkitStore()
     this.marketInfoStore = getMarketInfoStore()
 
-    const updaterTimer = setInterval(() => {
-      if (this.rdtStore.walletData?.accounts?.length) {
-        void this.loadAccounts()
-      }
-      else {
-        this.accounts = []
-      }
-    }, 15 * 60 * 1000)
+    let updaterTimer: ReturnType<typeof setInterval> | undefined
+    if (typeof window !== 'undefined') {
+      updaterTimer = setInterval(() => {
+        if (this.rdtStore.walletData?.accounts?.length) {
+          void this.loadAccounts()
+        }
+        else {
+          this.accounts = []
+        }
+      }, 15 * 60 * 1000)
+    }
 
     // React to wallet account changes pushed from RadixToolkitStore.
     $effect(() => {
-      $inspect(this.accounts)
-
       const walletData = this.rdtStore.walletData
       const currentAccountAddresses = walletData?.accounts?.map(({ address }) => address) ?? []
 
-      if (this.marketInfoStore.loading) {
+      if (this.marketInfoStore?.loading) {
         return
       }
 
       // If no account are linked or Market info isn't initialized, reset account infos
-      if (currentAccountAddresses.length === 0 || !this.marketInfoStore.initialized) {
+      if (currentAccountAddresses.length === 0 || !this.marketInfoStore?.initialized) {
         this.accounts = []
         this.lastAccountAddresses = []
         return
@@ -97,7 +98,8 @@ export class UserAccountsStore extends BaseStore {
     })
 
     onDestroy(() => {
-      clearInterval(updaterTimer)
+      if (updaterTimer)
+        clearInterval(updaterTimer)
     })
   }
 
@@ -105,56 +107,61 @@ export class UserAccountsStore extends BaseStore {
     await this.loadAccounts()
   }
 
-  async loadAccounts() {
+  async loadAccounts(force = false) {
+    if (this.loading)
+      return
+
     const accountAddresses = this.rdtStore.walletData?.accounts?.map(({ address }) => address) ?? []
 
-    this.accounts = []
-    this.lastAccountAddresses = []
-
     if (accountAddresses.length === 0) {
+      this.accounts = []
+      this.lastAccountAddresses = []
       return
     }
 
-    try {
-      const options: FetchOptions = {
-        loadState: false,
-        loadResourceDetails: true,
-        recursiveFungibleResourceLoading: true,
-        recursiveNonFungibleResourceLoading: true,
-      }
+    const sortedAddresses = [...accountAddresses].sort()
+    const lastSorted = [...this.lastAccountAddresses].sort()
+    const unchanged = sortedAddresses.join(',') === lastSorted.join(',')
+    if (!force && this.isDataFresh() && unchanged && this.accounts.length > 0)
+      return
 
-      const res = await this.weftStateApi.getFetcher().fetchEntityState(accountAddresses, options)
+    const result = await this.executeWithErrorHandling(async () => {
+      const res = await this.weftStateApi.getResourceInfos(accountAddresses)
+
+      console.log(res)
 
       const accounts: WeftUserAccountData[] = []
 
-      const tasks = res.map(async (fetchedAccount) => {
+      const tasks = Object.entries(res).map(async ([accountAddress, fetchedAccount]) => {
         const accountData: WeftUserAccountData = {
-          address: fetchedAccount.$entityAddress,
+          address: accountAddress,
           cdps: [],
           depositUnits: {},
           resources: {},
-          lsu: {},
-          claimNFTs: {},
+          lsu: fetchedAccount.lsuResources.reduce<Record<string, LSUResource>>((a, b) => {
+            a[b.resourceAddress] = b
+            return a
+          }, {}),
+          claimNFTs: fetchedAccount.claimNfts.reduce<Record<string, ClaimNFT>>((a, b) => {
+            a[b.resourceAddress] = b
+            return a
+          }, {}),
         }
 
-        Object.entries(fetchedAccount.$fungibleResources.values).forEach(([address, fungibleResource]) => {
+        fetchedAccount.fungibleResources.forEach((fungibleResource) => {
           if (fungibleResource.amount.isZero())
             return
 
           const collateral = this.marketInfoStore.collateralResources.find(
-            res => res.resourceAddress === address,
+            res => res.resourceAddress === fungibleResource.resourceAddress,
           )
 
           const loan = this.marketInfoStore.loanResources.find(
-            res => res.resourceAddress === address,
+            res => res.resourceAddress === fungibleResource.resourceAddress,
           )
 
           const depositUnit = this.marketInfoStore.loanResources.find(
-            res => res.lendingPoolState?.depositUnitAddress === address,
-          )
-
-          const lsu = this.marketInfoStore.lsuAmounts.find(
-            res => res.resourceAddress === address,
+            res => res.resourceAddress === fungibleResource.resourceAddress,
           )
 
           if (collateral || loan) {
@@ -164,7 +171,7 @@ export class UserAccountsStore extends BaseStore {
               amount: fungibleResource.amount,
             }
 
-            accountData.resources[address] = accountResource
+            accountData.resources[fungibleResource.resourceAddress] = accountResource
           }
 
           if (depositUnit) {
@@ -173,29 +180,14 @@ export class UserAccountsStore extends BaseStore {
               loanResource: depositUnit,
             }
 
-            accountData.depositUnits[address] = accountDU
-          }
-
-          if (lsu) {
-            const accountLSU: LSUCollateral = { ...lsu, amount: fungibleResource.amount }
-            accountData.lsu[address] = accountLSU
-          }
-          else if (fungibleResource.fungibleDetails?.$details.native_resource_details?.kind === 'ValidatorLiquidStakeUnit') {
-            accountData.lsu[address] = {
-              amount: fungibleResource.amount,
-              resourceAddress: address,
-              unitRedemptionValue: dec(fungibleResource.fungibleDetails?.$details.native_resource_details?.unit_redemption_value[0].amount ?? dec(0)),
-              validatorAddress: fungibleResource.fungibleDetails?.$details.native_resource_details?.validator_address,
-              metadata: fungibleResource.fungibleDetails?.$metadata,
-              validatorMetadata: {},
-          }
+            accountData.depositUnits[fungibleResource.resourceAddress] = accountDU
           }
         })
 
         const cdpIds: string[] = []
 
-        Object.entries(fetchedAccount.$nonFungibleResources.values).forEach(([address, nonFungibleResource]) => {
-         const ids = nonFungibleResource.ids ?? []
+        Object.entries(fetchedAccount.claimNfts).forEach(([address, claimNft]) => {
+         const ids = claimNft.ids ?? []
 
           if (ids.length === 0) {
             return
@@ -204,37 +196,27 @@ export class UserAccountsStore extends BaseStore {
           if (address === CDP_RESOURCE) {
             cdpIds.push(...ids)
           }
-
-          const claimNft = this.marketInfoStore.claimNftCollaterals.find(
-            res => res.resourceAddress === address,
-          )
-          //
-          if (claimNft) {
-            const accountClaimNFT: ClaimNFTCollateral = { ...claimNft, ids }
-            accountData.claimNFTs[address] = accountClaimNFT
-          }
-          else if (nonFungibleResource.nonFungibleDetails?.$details.native_resource_details?.kind === 'ValidatorClaimNft') {
-            accountData.claimNFTs[address] = {
-              ids,
-              resourceAddress: address,
-              validatorAddress: nonFungibleResource.nonFungibleDetails?.$details.native_resource_details?.validator_address,
-              metadata: nonFungibleResource.nonFungibleDetails?.$metadata,
-              validatorMetadata: {},
-            }
-          }
         })
 
+        console.log(cdpIds)
+
         accountData.cdps = (await this.weftStateApi.getMultipleCdp(cdpIds)).data
+
+        console.log((await this.weftStateApi.getMultipleCdp(cdpIds)).data)
 
         accounts.push(accountData)
       })
 
       await Promise.all(tasks)
 
-      this.accounts = accounts
+      return { accounts, accountAddresses }
+    }, 'loadAccounts')
+
+    if (result) {
+      this.accounts = result.accounts
+      this.lastAccountAddresses = result.accountAddresses
     }
-    catch (error) {
-      console.error('Failed to load account data:', error)
+    else {
       this.accounts = []
     }
   }

@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/dist'
+  import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
   import type { WeftUserAccountData } from '$lib/stores/user-accounts.svelte'
   import type Decimal from 'decimal.js'
   import HealthPill from '$lib/components/common/HealthPill.svelte'

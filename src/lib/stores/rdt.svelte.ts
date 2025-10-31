@@ -26,10 +26,6 @@ export class RadixToolkitStore {
 
     // Subscribe to updates to the user's shared wallet data and store it in the walletData store
     const subs = this.innerRDT?.walletApi.walletData$.subscribe((data) => {
-      // $effect(() => {
-      //   $inspect('walletConnected: ', this.walletConnected)
-      // })
-
       this.walletData = data
 
       if (!this.walletConnected) {
@@ -38,7 +34,7 @@ export class RadixToolkitStore {
     })
 
     onDestroy(() => {
-      subs.unsubscribe()
+      subs?.unsubscribe()
     })
   }
 

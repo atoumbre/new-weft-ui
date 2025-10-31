@@ -1,8 +1,10 @@
 <script lang='ts'>
   import RadixConnectButton from '$lib/components/common/RadixConnectButton.svelte'
-  import { WeftLedgerSateFetcher } from '$lib/internal_modules/dist'
+  import { WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
   import { setCdpStore } from '$lib/stores/cdp-store.svelte'
   import { setMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { setMarketResourceStore } from '$lib/stores/market-resource.svelte'
+  import { setMetadataService } from '$lib/stores/metadata-service.svelte'
   import { setPriceStore } from '$lib/stores/price-store.svelte'
   import { setRadixToolkitStore } from '$lib/stores/rdt.svelte'
   import { setUserAccountsStore } from '$lib/stores/user-accounts.svelte'
@@ -28,20 +30,44 @@
 
   WeftLedgerSateFetcher.setInstance(gatewayApiClient)
 
-  const xrdPriceStore = setXRDPriceStore()
   const rdtStore = setRadixToolkitStore()
-  setCdpStore()
-  setPriceStore()
-  setMarketInfoStore()
-  const accounts = setUserAccountsStore()
+  const xrdPriceStore = setXRDPriceStore()
+  setMetadataService()
+  const priceStore = setPriceStore()
+  const marketInfoStore = setMarketInfoStore()
+  const marketResourceStore = setMarketResourceStore()
+  const cdpStore = setCdpStore()
+  const userAccountsStore = setUserAccountsStore()
+
+  let orchestrator: any = $state(null)
 
   onMount(async () => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null
     if (saved && (themes as readonly string[]).includes(saved))
       theme = saved as Theme
 
+    // Initialize RDT first (synchronous)
     rdtStore.init()
-    xrdPriceStore.updatePrice()
+
+    // Initialize store orchestrator for coordinated loading
+    const { StoreOrchestrator } = await import('$lib/stores/store-orchestrator.svelte')
+    orchestrator = new StoreOrchestrator(
+      rdtStore,
+      xrdPriceStore,
+      marketInfoStore,
+      marketResourceStore,
+      priceStore,
+      cdpStore,
+      userAccountsStore,
+    )
+
+    // Then initialize all stores in coordinated manner
+    try {
+      await orchestrator.initializeStores({ parallel: true })
+    }
+    catch (error) {
+      console.error('Failed to initialize stores:', error)
+    }
   })
 
   $effect(() => {
@@ -157,8 +183,3 @@
     {@render children?.()}
   </main>
 </div>
-
-rdtStore.walletData
-{rdtStore.walletData?.accounts.map(a => a.address)}
-accounts.accounts
-{accounts.accounts}

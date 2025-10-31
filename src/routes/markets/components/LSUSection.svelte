@@ -1,8 +1,9 @@
 <script lang='ts'>
-  import type { LSUCollateral } from '$lib/internal_modules/dist'
+  import type { LSUResource } from '$lib/internal_modules/weft-ledger-state'
   import type Decimal from 'decimal.js'
   import AmountDisplay from '$lib/components/common/AmountDisplay.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
+  import { getMarketResourceStore } from '$lib/stores/market-resource.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
 
   type LSUData = {
@@ -17,8 +18,9 @@
 
   const marketInfoStore = getMarketInfoStore()
   const xrdPriceStore = getXRDPriceStore()
+  const marketResource = getMarketResourceStore()
 
-  function transformLSUData(lsuData: LSUCollateral): LSUData {
+  function transformLSUData(lsuData: LSUResource): LSUData {
     const unitRedemptionValue = lsuData.unitRedemptionValue
     const priceInUSD = unitRedemptionValue.mul(xrdPriceStore.xrdPrice)
     const iconUrl = lsuData.validatorMetadata?.iconUrl
@@ -38,7 +40,7 @@
 
   // Get LSU data sorted by amount USD value descending
   const lsuData: LSUData[] = $derived.by(() => {
-    return marketInfoStore.lsuAmounts
+    return marketResource.getLSUCollaterals()
       .map(lsuAmount => transformLSUData(lsuAmount))
       .sort((a, b) => b.amountUsd.cmp(a.amountUsd))
   })
