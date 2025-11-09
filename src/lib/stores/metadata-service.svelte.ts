@@ -127,14 +127,14 @@ export class MetadataService {
       : new InMemoryCacheStrategy()
   }
 
-getSyncResourceDetails(resourceAddress: string): A | undefined {
-  const result = this.resourceInfoState.get(resourceAddress)
-  if (!result) {
-    this.getResourceDetails([resourceAddress])
-  }
+// getSyncResourceDetails(resourceAddress: string): A | undefined {
+//   const result = this.resourceInfoState.get(resourceAddress)
+//   if (!result) {
+//     this.getResourceDetails([resourceAddress])
+//   }
 
-  return result
-}
+//   return result
+// }
 
   async getResourceDetails(resources: string[], ledgerStateSelector?: LedgerStateSelector): Promise<A[]> {
     const entityAddresses = [...new Set(resources)]
@@ -203,14 +203,12 @@ getSyncResourceDetails(resourceAddress: string): A | undefined {
       }
     }
 
-    // Collect validator addresses from all resources (both cached and newly fetched)
-    const allValidatorAddressesSet = new Set<string>()
+    // Collect validator addresses to fetch
     const validatorAddressesToFetch = new Set<string>()
 
     returnedResult.forEach((r) => {
       if (r.native_resource_details?.kind === 'ValidatorClaimNft' || r.native_resource_details?.kind === 'ValidatorLiquidStakeUnit') {
         const validatorAddress = r.native_resource_details.validator_address
-        allValidatorAddressesSet.add(validatorAddress)
 
         // Check if validator metadata is already cached
         if (this.validatorMetadataCache.has(validatorAddress)) {
@@ -248,6 +246,7 @@ getSyncResourceDetails(resourceAddress: string): A | undefined {
     // Cache all newly fetched resources after validator metadata has been added
     for (const address of resourcesToFetch) {
       const resource = returnedResult.find(r => r.resourceAddress === address)
+
       if (resource) {
         this.cacheStrategy.set(address, resource)
       }

@@ -2,8 +2,6 @@
   import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
   import type Decimal from 'decimal.js'
   import { getCdpStore, inEfficiency } from '$lib/stores/cdp-store.svelte'
-  import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec } from '$lib/utils/common'
   import {
@@ -27,9 +25,9 @@
   }
 
   const cdpStore = getCdpStore()
-  const priceStore = getPriceStore()
+  // const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
-  const marketInfoStore = getMarketInfoStore()
+  // const marketInfoStore = getMarketInfoStore()
 
   let showCollateralBreakdown = $state(false)
   let showDebtBreakdown = $state(false)
@@ -276,11 +274,11 @@
   })
 
   onMount(() => {
-    if (marketInfoStore.status === 'not loaded') {
-      marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
-      })
-    }
+    // if (marketInfoStore.status === 'not loaded') {
+    //   marketInfoStore.loadMarketInfo().then(() => {
+    //     priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
+    //   })
+    // }
 
     if (cdpStore.status === 'not loaded') {
       cdpStore.loadCdpData()
@@ -460,12 +458,14 @@
   items={collateralBreakdown}
   onClose={() => (showCollateralBreakdown = false)}
 />
+
 <BreakdownModal
   title='Total Debt Breakdown'
   open={showDebtBreakdown}
   items={debtBreakdown}
   onClose={() => (showDebtBreakdown = false)}
 />
+
 <BreakdownModal
   title='Risky Debt Breakdown'
   open={showRiskyDebtBreakdown}

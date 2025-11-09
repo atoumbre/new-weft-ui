@@ -15,7 +15,6 @@
   import { getUserAccountsStore } from '$lib/stores/user-accounts.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec, fValue } from '$lib/utils/common'
-  import { onMount } from 'svelte'
   import CDPBorrowedSection from './components/CDPBorrowedSection.svelte'
   import CDPCollateralSection from './components/CDPCollateralSection.svelte'
   import CDPEmptyState from './components/CDPEmptyState.svelte'
@@ -30,14 +29,6 @@
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
   const metadataService = getMetadataService()
-
-  onMount(() => {
-    if (marketInfoStore.status === 'not loaded') {
-      marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
-      })
-    }
-  })
 
   type ActionType = 'add_collateral' | 'remove_collateral' | 'borrow' | 'repay'
 
@@ -128,6 +119,7 @@
   const selectedAccount = $derived(selectedAccountOption?.data)
 
   const cdpList = $derived(
+
     (selectedAccount?.cdps ?? []) as CollateralizeDebtPositionData[],
   )
 
@@ -420,6 +412,8 @@
     onCreateCDP={() => openCdpForm('add_collateral')}
   />
 
+  {cdpList}
+
   <CDPStats
     {cdpList}
     {currentCdp}
@@ -502,5 +496,5 @@
   on:submit={() => (formOpen = false)}
 />
 
-{JSON.stringify(selectedAccount)}
-{currentCdp?.healthLtv}
+<!-- {JSON.stringify(selectedAccount)}
+{currentCdp?.healthLtv} -->

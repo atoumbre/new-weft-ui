@@ -1,6 +1,7 @@
 import type { CdpStore } from './cdp-store.svelte'
 import type { MarketInfoStore } from './market-info.svelte'
 import type { MarketResourceStore } from './market-resource.svelte'
+import type { MetadataService } from './metadata-service.svelte'
 import type { PriceStore } from './price-store.svelte'
 import type { RadixToolkitStore } from './rdt.svelte'
 import type { UserAccountsStore } from './user-accounts.svelte'
@@ -19,6 +20,7 @@ export class StoreOrchestrator {
   private priceStore: PriceStore
   private cdpStore: CdpStore
   private userAccountsStore: UserAccountsStore
+  private metadataService: MetadataService
 
   initialized = $state(false)
   initializationError: Error | null = $state(null)
@@ -36,6 +38,7 @@ export class StoreOrchestrator {
     priceStore: PriceStore,
     cdpStore: CdpStore,
     userAccountsStore: UserAccountsStore,
+    metadataService: MetadataService,
   ) {
     this.rdtStore = rdtStore
     this.xrdPriceStore = xrdPriceStore
@@ -44,6 +47,7 @@ export class StoreOrchestrator {
     this.priceStore = priceStore
     this.cdpStore = cdpStore
     this.userAccountsStore = userAccountsStore
+    this.metadataService = metadataService
   }
 
   /**
@@ -102,13 +106,14 @@ export class StoreOrchestrator {
     await Promise.all([
       this.marketResourceStore.loadResourceInfo(),
       this.priceStore.loadPrices(this.marketInfoStore.allResourceAddressesWithPrice),
+      this.metadataService.getResourceDetails(this.marketInfoStore.allResourceAddresses2),
     ])
-    this.initializationProgress.completed = 4
+    this.initializationProgress.completed = 5
 
     // Stage 3: CDP store (depends on market info)
-    this.initializationProgress.currentStage = 'Loading CDP data...'
-    await this.cdpStore.loadCdpData()
-    this.initializationProgress.completed = 5
+    // this.initializationProgress.currentStage = 'Loading CDP data...'
+    // await this.cdpStore.loadCdpData()
+    // this.initializationProgress.completed = 5
 
     // Note: UserAccountsStore is reactive and loads when wallet connects
     // so we don't initialize it here
@@ -139,8 +144,8 @@ export class StoreOrchestrator {
     this.initializationProgress.completed = 4
 
     // Step 5: CDP Data
-    this.initializationProgress.currentStage = 'Loading CDP data...'
-    await this.cdpStore.loadCdpData()
+    this.initializationProgress.currentStage = 'Loading resource metadata...'
+    await this.metadataService.getResourceDetails(this.marketInfoStore.allResourceAddresses2)
     this.initializationProgress.completed = 5
 
     // Note: UserAccountsStore is reactive and loads when wallet connects

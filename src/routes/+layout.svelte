@@ -32,7 +32,7 @@
 
   const rdtStore = setRadixToolkitStore()
   const xrdPriceStore = setXRDPriceStore()
-  setMetadataService()
+  const metadataService = setMetadataService()
   const priceStore = setPriceStore()
   const marketInfoStore = setMarketInfoStore()
   const marketResourceStore = setMarketResourceStore()
@@ -59,6 +59,7 @@
       priceStore,
       cdpStore,
       userAccountsStore,
+      metadataService,
     )
 
     // Then initialize all stores in coordinated manner
@@ -108,8 +109,8 @@
             <ul class='menu menu-horizontal gap-1 px-1'>
               <li><a href='/markets' class='btn btn-ghost btn-sm'>Market</a></li>
               <li><a href='/cdp-explorer' class='btn btn-ghost btn-sm'>CDP Explorer</a></li>
-              <!-- <li><a href='/lending' class='btn btn-sm btn-ghost'>Lending</a></li>
-              <li><a href='/cdp' class='btn btn-sm btn-ghost'>Manage CDPs</a></li> -->
+              <!-- <li><a href='/lending' class='btn btn-sm btn-ghost'>Lending</a></li> -->
+              <li><a href='/cdp' class='btn btn-sm btn-ghost'>Manage CDPs</a></li>
             </ul>
           </div>
         </div>
@@ -137,8 +138,8 @@
             >
               <li><a href='/markets'>Market</a></li>
               <li><a href='/cdp-explorer'>CDP Explorer</a></li>
-              <!-- <li><a href='/lending'>Lending</a></li>
-              <li><a href='/cdp'>Manage CDPs</a></li> -->
+              <!-- <li><a href='/lending'>Lending</a></li> -->
+              <li><a href='/cdp'>Manage CDPs</a></li>
             </ul>
           </div>
           <!-- Theme switcher -->

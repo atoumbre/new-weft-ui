@@ -128,8 +128,6 @@ export class UserAccountsStore extends BaseStore {
     const result = await this.executeWithErrorHandling(async () => {
       const res = await this.weftStateApi.getResourceInfos(accountAddresses)
 
-      console.log(res)
-
       const accounts: WeftUserAccountData[] = []
 
       const tasks = Object.entries(res).map(async ([accountAddress, fetchedAccount]) => {
@@ -186,23 +184,19 @@ export class UserAccountsStore extends BaseStore {
 
         const cdpIds: string[] = []
 
-        Object.entries(fetchedAccount.claimNfts).forEach(([address, claimNft]) => {
+        fetchedAccount.nonFungibleResources.forEach((claimNft) => {
          const ids = claimNft.ids ?? []
 
           if (ids.length === 0) {
             return
           }
 
-          if (address === CDP_RESOURCE) {
+          if (claimNft.resourceAddress === CDP_RESOURCE) {
             cdpIds.push(...ids)
           }
         })
 
-        console.log(cdpIds)
-
         accountData.cdps = (await this.weftStateApi.getMultipleCdp(cdpIds)).data
-
-        console.log((await this.weftStateApi.getMultipleCdp(cdpIds)).data)
 
         accounts.push(accountData)
       })

@@ -3,11 +3,9 @@
   import Tab from '$lib/components/common/Tab.svelte'
   import Tabs from '$lib/components/common/Tabs.svelte'
   import { getMarketInfoStore } from '$lib/stores/market-info.svelte'
-  import { getMetadataService } from '$lib/stores/metadata-service.svelte'
   import { getPriceStore } from '$lib/stores/price-store.svelte'
   import { getXRDPriceStore } from '$lib/stores/xrd-price-store.svelte'
   import { dec } from '$lib/utils/common'
-  import { onMount } from 'svelte'
   import CollateralsSection from './components/CollateralsSection.svelte'
   import LendingPoolsSection from './components/LendingPoolsSection.svelte'
   import LSUSection from './components/LSUSection.svelte'
@@ -28,16 +26,16 @@
   const marketInfoStore = getMarketInfoStore()
   const priceStore = getPriceStore()
   const xrdPriceStore = getXRDPriceStore()
-  const metadataService = getMetadataService()
+  // const metadataService = getMetadataService()
 
-  onMount(() => {
-    if (marketInfoStore.status === 'not loaded') {
-      marketInfoStore.loadMarketInfo().then(() => {
-        priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
-        metadataService.getResourceDetails(marketInfoStore.allResourceAddresses2)
-      })
-    }
-  })
+  // onMount(() => {
+  //   if (marketInfoStore.status === 'not loaded') {
+  //     marketInfoStore.loadMarketInfo().then(() => {
+  //       priceStore.loadPrices(marketInfoStore.allResourceAddressesWithPrice)
+  //       metadataService.getResourceDetails(marketInfoStore.allResourceAddresses2)
+  //     })
+  //   }
+  // })
 
   let activeTab = $state<'lending' | 'collaterals' | 'lsu'>('lending')
 
