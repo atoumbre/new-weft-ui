@@ -9,7 +9,7 @@ import type {
   OperatingStatusValue,
 } from '$lib/internal_modules/weft-ledger-state'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
-import { getContext, onDestroy, setContext } from 'svelte'
+import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 export class MarketInfoStore extends BaseStore {
@@ -54,21 +54,7 @@ export class MarketInfoStore extends BaseStore {
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
 
     // Auto-refresh market info every 5 minutes
-    let updaterTimer: ReturnType<typeof setInterval> | undefined
-    if (typeof window !== 'undefined') {
-      updaterTimer = setInterval(
-        () => {
-          this.loadMarketInfo()
-        },
-        5 * 60 * 1000,
-      )
-    }
-
-    onDestroy(() => {
-      if (updaterTimer) {
-        clearInterval(updaterTimer)
-      }
-    })
+    this.startAutoRefresh(() => this.loadMarketInfo(), 5 * 60 * 1000)
   }
 
   async retry() {

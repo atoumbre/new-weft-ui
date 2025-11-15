@@ -1,6 +1,6 @@
 import type { CollateralizeDebtPositionData } from '$lib/internal_modules/weft-ledger-state'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
-import { getContext, onDestroy, setContext } from 'svelte'
+import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
 export class CdpStore extends BaseStore {
@@ -10,7 +10,6 @@ export class CdpStore extends BaseStore {
   filteredCdpList: CollateralizeDebtPositionData[] = $state([])
 
   weftStateApi: WeftLedgerSateFetcher
-  updaterTimer: ReturnType<typeof setInterval> | undefined
 
   constructor() {
     super({
@@ -23,19 +22,7 @@ export class CdpStore extends BaseStore {
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
 
     // Auto-refresh CDP data every 15 minutes
-    if (typeof window !== 'undefined') {
-      this.updaterTimer = setInterval(
-        () => {
-          this.loadCdpData()
-        },
-        15 * 60 * 1000,
-      )
-    }
-
-    onDestroy(() => {
-      if (this.updaterTimer)
-        clearInterval(this.updaterTimer)
-    })
+    this.startAutoRefresh(() => this.loadCdpData(), 15 * 60 * 1000)
   }
 
   async retry() {

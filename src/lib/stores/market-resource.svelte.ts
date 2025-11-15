@@ -1,20 +1,19 @@
-import type { ClaimNFT, FungibleResource, LSUResource, NonFungibleResource } from '$lib/internal_modules/weft-ledger-state'
+import type { ClaimNFT, FungibleResource, LSUResource, MarketResourceInfo } from '$lib/internal_modules/weft-ledger-state'
 import type { LedgerStateSelector } from '@radixdlt/babylon-gateway-api-sdk'
 import type Decimal from 'decimal.js'
 import { LENDING_MARKET_COMPONENT, WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
 import { dec } from '$lib/utils/common'
-import { getContext, onDestroy, setContext } from 'svelte'
+import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 
-interface MarketResourceInfo {
-  fungibleResources: FungibleResource[]
-  lsuResources: LSUResource[]
-  claimNfts: ClaimNFT[]
-  nonFungibleResources: NonFungibleResource[]
-}
-
 export class MarketResourceStore extends BaseStore {
-  updaterTimer: ReturnType<typeof setInterval> | undefined
+    resourceInfo: MarketResourceInfo = $state({
+    fungibleResources: [],
+    lsuResources: [],
+    claimNfts: [],
+    nonFungibleResources: [],
+  })
+
   weftStateApi: WeftLedgerSateFetcher
 
   totalCollateral = $derived.by(() => {
@@ -39,31 +38,12 @@ export class MarketResourceStore extends BaseStore {
 
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
 
-    if (typeof window !== 'undefined') {
-      this.updaterTimer = setInterval(
-        () => {
-          void this.loadResourceInfo()
-        },
-        15 * 60 * 1000, // 15 minutes
-      )
-    }
-
-    onDestroy(() => {
-      if (this.updaterTimer)
-        clearInterval(this.updaterTimer)
-    })
+    this.startAutoRefresh(() => this.loadResourceInfo(), 15 * 60 * 1000)
   }
 
   async retry(): Promise<void> {
     await this.loadResourceInfo()
   }
-
-  resourceInfo: MarketResourceInfo = $state({
-    fungibleResources: [],
-    lsuResources: [],
-    claimNfts: [],
-    nonFungibleResources: [],
-  })
 
   async loadResourceInfo(ledgerStateSelector?: LedgerStateSelector, force = false) {
     if (this.loading)

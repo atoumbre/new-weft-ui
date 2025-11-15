@@ -194,7 +194,7 @@ declare class ResourceDetailsRepo extends BaseModel {
     fetchResourceState(entityAddressesInput: string[]): Promise<void>;
 }
 
-type A = StateEntityDetailsResponseItemDetails & {
+type ResourceDetails = StateEntityDetailsResponseItemDetails & {
     type: 'FungibleResource' | 'NonFungibleResource';
     resourceAddress: string;
     metadata: Record<string, any>;
@@ -205,11 +205,11 @@ declare class MetadataService extends BaseModel {
     private cacheStrategy;
     private validatorMetadataCache;
     constructor(stateFetcher: EntityStateFetcher, useLocalStorage?: boolean, ttlMs?: number);
-    getResourceDetails(resources: string[], ledgerStateSelector?: LedgerStateSelector): Promise<A[]>;
+    getResourceDetails(resources: string[], ledgerStateSelector?: LedgerStateSelector): Promise<ResourceDetails[]>;
     /**
      * Get a single resource from cache or state
      */
-    getResourceFromCache(resourceAddress: string): A | undefined;
+    getResourceFromCache(resourceAddress: string): ResourceDetails | undefined;
     /**
      * Clear all cached resources and validator metadata
      */
@@ -217,7 +217,7 @@ declare class MetadataService extends BaseModel {
     /**
      * Get all resources from state
      */
-    getAllResourcesFromState(): A[];
+    getAllResourcesFromState(): ResourceDetails[];
 }
 
 declare class ComponentState<T = any> {

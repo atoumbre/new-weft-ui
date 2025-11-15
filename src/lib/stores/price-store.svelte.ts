@@ -3,7 +3,7 @@ import type Decimal from 'decimal.js'
 import type { XRDPriceStore } from './xrd-price-store.svelte'
 import { WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
 import { dec } from '$lib/utils/common'
-import { getContext, onDestroy, setContext } from 'svelte'
+import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 import { getXRDPriceStore } from './xrd-price-store.svelte'
 
@@ -18,7 +18,6 @@ export class PriceStore extends BaseStore {
   }
 
   prices: Record<string, Prices> = $state({})
-  updaterTimer: ReturnType<typeof setInterval> | undefined
   lastRequestedAddresses: string[] = []
 
   weftStateApi: WeftLedgerSateFetcher
@@ -35,22 +34,11 @@ export class PriceStore extends BaseStore {
     this.weftStateApi = WeftLedgerSateFetcher.getInstance()
         this.xrdPriceStore = getXRDPriceStore()
 
-    if (typeof window !== 'undefined') {
-      this.updaterTimer = setInterval(
-        () => {
-          if (this.lastRequestedAddresses.length === 0)
-            return
-
-          void this.loadPrices()
-        },
-        15 * 60 * 1000,
-      )
-    }
-
-    onDestroy(() => {
-      if (this.updaterTimer)
-        clearInterval(this.updaterTimer)
-    })
+    this.startAutoRefresh(() => {
+      if (this.lastRequestedAddresses.length === 0)
+        return
+      return this.loadPrices()
+    }, 15 * 60 * 1000)
   }
 
   async loadPrices(addresses: string[] = [], force = false) {

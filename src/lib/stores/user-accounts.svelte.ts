@@ -3,7 +3,7 @@ import type Decimal from 'decimal.js'
 import type { MarketInfoStore } from './market-info.svelte'
 import type { RadixToolkitStore } from './rdt.svelte'
 import { CDP_RESOURCE, WeftLedgerSateFetcher } from '$lib/internal_modules/weft-ledger-state'
-import { getContext, onDestroy, setContext } from 'svelte'
+import { getContext, setContext } from 'svelte'
 import { BaseStore } from './base-store.svelte'
 import { getMarketInfoStore } from './market-info.svelte'
 import { getRadixToolkitStore } from './rdt.svelte'
@@ -58,17 +58,14 @@ export class UserAccountsStore extends BaseStore {
     this.rdtStore = getRadixToolkitStore()
     this.marketInfoStore = getMarketInfoStore()
 
-    let updaterTimer: ReturnType<typeof setInterval> | undefined
-    if (typeof window !== 'undefined') {
-      updaterTimer = setInterval(() => {
-        if (this.rdtStore.walletData?.accounts?.length) {
-          void this.loadAccounts()
-        }
-        else {
-          this.accounts = []
-        }
-      }, 15 * 60 * 1000)
-    }
+    this.startAutoRefresh(() => {
+      if (this.rdtStore.walletData?.accounts?.length) {
+        return this.loadAccounts()
+      }
+      else {
+        this.accounts = []
+      }
+    }, 15 * 60 * 1000)
 
     // React to wallet account changes pushed from RadixToolkitStore.
     $effect(() => {
@@ -97,10 +94,7 @@ export class UserAccountsStore extends BaseStore {
       this.loadAccounts()
     })
 
-    onDestroy(() => {
-      if (updaterTimer)
-        clearInterval(updaterTimer)
-    })
+    // Cleanup handled by BaseStore.startAutoRefresh
   }
 
   async retry() {
@@ -159,7 +153,7 @@ export class UserAccountsStore extends BaseStore {
           )
 
           const depositUnit = this.marketInfoStore.loanResources.find(
-            res => res.resourceAddress === fungibleResource.resourceAddress,
+            res => res.lendingPoolState?.depositUnitAddress === fungibleResource.resourceAddress,
           )
 
           if (collateral || loan) {
@@ -216,7 +210,7 @@ export class UserAccountsStore extends BaseStore {
   }
 }
 
-const UserAccountsStoreKey = Symbol('MarketInfoStore')
+const UserAccountsStoreKey = Symbol('UserAccountsStore')
 
 export function setUserAccountsStore() {
   return setContext(UserAccountsStoreKey, new UserAccountsStore())

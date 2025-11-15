@@ -1,3 +1,5 @@
+import { onDestroy } from 'svelte'
+
 export interface StoreError {
   code: string
   message: string
@@ -21,6 +23,7 @@ export abstract class BaseStore {
 
   protected options: Required<StoreOptions>
   protected pendingRequests: Map<string, Promise<any>> = new Map()
+  protected autoRefreshTimer: ReturnType<typeof setInterval> | undefined
 
   constructor(options: StoreOptions = {}) {
     this.options = {
@@ -202,5 +205,40 @@ export abstract class BaseStore {
     if (this.lastFetch)
       return `fresh (${new Date(this.lastFetch).toLocaleTimeString()})`
     return 'not loaded'
+  }
+
+  /**
+   * Start an auto-refresh interval and ensure cleanup on destroy.
+   * Subsequent calls replace the existing interval.
+   */
+  protected startAutoRefresh(fn: () => void | Promise<void>, intervalMs: number): void {
+    if (typeof window === 'undefined')
+      return
+
+    this.stopAutoRefresh()
+
+    const run = () => {
+      try {
+        const res = fn()
+        if (res && typeof (res as Promise<any>).then === 'function')
+          (res as Promise<any>).catch(() => {})
+      }
+      catch {
+        // Swallow errors here; individual operations should handle/report
+      }
+    }
+
+    this.autoRefreshTimer = setInterval(run, intervalMs)
+
+    // Ensure cleanup when the owning component unmounts
+    onDestroy(() => this.stopAutoRefresh())
+  }
+
+  /** Stop any running auto-refresh interval. */
+  protected stopAutoRefresh(): void {
+    if (this.autoRefreshTimer) {
+      clearInterval(this.autoRefreshTimer)
+      this.autoRefreshTimer = undefined
+    }
   }
 }
